@@ -1,0 +1,312 @@
+erDiagram
+    USER {
+        string Id PK "ASP.NET Identity key"
+        string Email UK
+        string PhoneNumber
+        string FullName
+        bool IsActive
+        datetime CreatedAt
+    }
+    ROLE {
+        string Id PK "ASP.NET Identity key"
+        string Name UK "Manager, PayoutAuditor, Treasurer, DocumentReviewer, FieldOfficer, Donor"
+    }
+    USERROLE {
+        string UserId PK, FK
+        string RoleId PK, FK
+    }
+    DONOR {
+        guid Id PK
+        string UserId FK, UK
+        string PreferredChannel "Email or SMS"
+        bool OptOutNonEssential
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+
+    FAMILY {
+        guid Id PK
+        string HeadFullNameEnc
+        string AddressEnc
+        string PhoneEnc
+        string Governorate
+        datetime CreatedAt
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+    FAMILYMEMBER {
+        guid Id PK
+        guid FamilyId FK
+        string FullNameEnc
+        string NationalIdEnc
+        string NationalIdHash UK
+        date BirthDate
+        string Gender
+        string Relation
+        bool IsProvider
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+    CASE {
+        guid Id PK "anonymous Case ID"
+        guid FamilyId FK "required"
+        string CreatedByOfficerId FK
+        string Status "Draft, PendingReview, Verified, Rejected"
+        datetime SubmittedAt
+        datetime VerifiedAt
+        int PausedDays
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+    CASESURVEY {
+        guid CaseId PK, FK
+        decimal MonthlyIncome
+        decimal MonthlyRent
+        int FamilySize
+        string HousingType "Owned, Rented, NoStableHousing"
+        string ProviderStatus
+        int ChildrenUnder6
+        int ChronicIllnessCount
+        string DisabilitySeverity
+        decimal MonthlyMedicalSpend
+        int SchoolAgeChildren
+        int ChildrenInSchool
+        string HomeCondition
+    }
+    DOCUMENT {
+        guid Id PK
+        guid CaseId FK
+        string Type "ID, BirthCert, Income, Medical, Housing"
+        string FilePath
+        string FileHash
+        string UploadedById FK
+        datetime UploadedAt
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+    CASESTATUSHISTORY {
+        guid Id PK
+        guid CaseId FK
+        string FromStatus
+        string ToStatus
+        string ReviewerId FK
+        string Reason
+        datetime ChangedAt
+    }
+
+    SCORINGRULESET {
+        guid Id PK
+        int Version UK
+        decimal WeightFinancial
+        decimal WeightSocial
+        decimal WeightHealth
+        decimal WeightEducation
+        decimal PovertyThreshold
+        decimal WaitLambda
+        int WaitMaxDays
+        string PointTablesJson
+        bool IsActive
+        string CreatedById FK
+        datetime CreatedAt
+    }
+    SCORERESULT {
+        guid Id PK
+        guid CaseId FK
+        guid RuleSetId FK
+        decimal FinancialScore
+        decimal SocialScore
+        decimal HealthScore
+        decimal EducationScore
+        decimal BaseScore
+        int WaitDays
+        decimal WaitFactor
+        decimal PriorityScore
+        string PriorityBand
+        datetime CalculatedAt
+    }
+    SPECIFICNEED {
+        guid Id PK
+        guid CaseId FK
+        string ValuedById FK
+        string Description
+        string Category
+        decimal EstimatedPrice
+        decimal FundedAmount
+        string Status "Open, Funded, Purchased, Closed"
+        datetime CreatedAt
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+
+    DONATIONCATEGORY {
+        guid Id PK
+        string Name UK "General, Education, Health"
+        bool IsActive
+    }
+    DONATION {
+        guid Id PK
+        guid DonorId FK
+        guid CategoryId FK
+        decimal Amount
+        decimal FeeAmount
+        string Currency
+        string Status "Pending, Succeeded, Failed, Refunded"
+        datetime CreatedAt
+        datetime ConfirmedAt
+    }
+    PAYMENTTRANSACTION {
+        guid Id PK
+        guid DonationId FK
+        string Gateway
+        string GatewayRef UK
+        string Status
+        string PayloadHash
+        datetime WebhookReceivedAt
+    }
+    DONATIONALLOCATION {
+        guid Id PK
+        guid DonationId FK
+        guid CaseId FK "required"
+        guid NeedId FK "nullable"
+        decimal Amount
+        datetime AllocatedAt
+    }
+    LEDGERENTRY {
+        guid Id PK
+        string EntryType "Donation, Fee, Allocation, Payout, Refund"
+        decimal Amount
+        guid DonationId FK "nullable"
+        guid AllocationId FK "nullable"
+        guid PayoutId FK "nullable"
+        datetime CreatedAt
+    }
+
+    PAYOUT {
+        guid Id PK
+        guid CaseId FK
+        decimal Amount
+        string Status "Requested, Authorized, AuditApproved, Returned, Executed, Failed"
+        string Method "Bank, Wallet, Cash"
+        string Reference
+        datetime CreatedAt
+        datetime ExecutedAt
+    }
+    PAYOUTAPPROVAL {
+        guid Id PK
+        guid PayoutId FK
+        string Step "ManagerAuthorize, AuditorCheck, TreasurerExecute"
+        string ActorId FK
+        string Decision "Approved, Returned"
+        string Comment
+        datetime DecidedAt
+    }
+
+    NOTIFICATIONOUTBOX {
+        guid Id PK
+        string UserId FK "required recipient"
+        guid DonationId FK "nullable"
+        guid PayoutId FK "nullable"
+        guid CaseId FK "nullable"
+        guid SpecificNeedId FK "nullable"
+        string Type "DonationImpact, PayoutImpact, CaseStatus, SpecificNeedCovered, MonthlyReminder"
+        string Channel "Email, SMS"
+        string Subject
+        string Body
+        string Status "Queued, Sent, Failed"
+        int Attempts
+        datetime CreatedAt
+        datetime SentAt
+    }
+    REPORT {
+        guid Id PK
+        string GeneratedById FK
+        string ReportType
+        date PeriodStart
+        date PeriodEnd
+        string FilePath
+        string FileHash
+        datetime CreatedAt
+        bool IsDeleted
+        datetime DeletedAt "nullable"
+        string DeletedById FK "nullable, USER"
+    }
+    AUDITLOG {
+        guid Id PK
+        string UserId FK
+        string Action
+        string EntityName
+        string EntityId
+        string OldValue
+        string NewValue
+        datetime At
+    }
+
+    %% IMPORTANT: USER, ROLE, USERROLE, and all USER foreign keys use string ASP.NET Identity keys.
+    %% Business entity primary keys remain guid.
+    %% DONATIONALLOCATION.CaseId is required; NeedId is nullable.
+    %% If NeedId is populated, the referenced SPECIFICNEED must belong to the same CASE.
+    %% LEDGERENTRY CHECK: exactly one of DonationId, AllocationId, and PayoutId is populated.
+    %% EntryType Donation/Fee/Refund requires DonationId; Allocation requires AllocationId; Payout requires PayoutId.
+    %% NOTIFICATIONOUTBOX requires exactly its Type reference; all unrelated business references are null.
+    %% DonationImpact=DonationId, PayoutImpact=PayoutId, CaseStatus=CaseId,
+    %% SpecificNeedCovered=SpecificNeedId, MonthlyReminder=no business reference.
+    %% Notification records preserve delivery status/history; retention and archival are defined separately.
+    %% AUDITLOG may be system-generated; UserId nullability remains unresolved pending requirements review.
+    %% Soft deletion consistency: IsDeleted=true requires DeletedAt; IsDeleted=false requires DeletedAt=NULL.
+    %% DeletedById remains nullable for system-initiated deletion.
+    %% Soft deletion is selective; financial, audit, status-history, and approval records are not physically deleted.
+
+    USER ||--o{ USERROLE : has
+    ROLE ||--o{ USERROLE : grants
+    USER ||--o| DONOR : "is a"
+    USER ||--o{ AUDITLOG : performs
+    USER ||--o{ NOTIFICATIONOUTBOX : receives
+    USER ||--o{ REPORT : generates
+
+    FAMILY ||--|{ FAMILYMEMBER : includes
+    FAMILY ||--o{ CASE : submits
+    USER ||--o{ CASE : "creates (officer)"
+    CASE ||--|| CASESURVEY : "described by"
+    CASE ||--o{ DOCUMENT : "proved by"
+    CASE ||--o{ CASESTATUSHISTORY : tracks
+    USER ||--o{ CASESTATUSHISTORY : reviews
+    USER ||--o{ DOCUMENT : uploads
+
+    SCORINGRULESET ||--o{ SCORERESULT : "used in"
+    CASE ||--o{ SCORERESULT : "scored as"
+    USER ||--o{ SCORINGRULESET : "configures (admin)"
+    CASE ||--o{ SPECIFICNEED : requests
+    USER ||--o{ SPECIFICNEED : "prices (officer)"
+
+    DONOR ||--o{ DONATION : makes
+    DONATIONCATEGORY ||--o{ DONATION : classifies
+    DONATION ||--o{ PAYMENTTRANSACTION : "paid via"
+    DONATION ||--o{ DONATIONALLOCATION : "split into"
+    CASE ||--o{ DONATIONALLOCATION : receives
+    DONATIONALLOCATION o{--o| SPECIFICNEED : "optionally targets"
+    LEDGERENTRY o{--o| DONATION : "optionally records"
+    LEDGERENTRY o{--o| DONATIONALLOCATION : "optionally records"
+    LEDGERENTRY o{--o| PAYOUT : "optionally records"
+    NOTIFICATIONOUTBOX o{--o| DONATION : "optionally references"
+    NOTIFICATIONOUTBOX o{--o| PAYOUT : "optionally references"
+    NOTIFICATIONOUTBOX o{--o| CASE : "optionally references"
+    NOTIFICATIONOUTBOX o{--o| SPECIFICNEED : "optionally references"
+
+    CASE ||--o{ PAYOUT : "paid out as"
+    PAYOUT ||--|{ PAYOUTAPPROVAL : "approved in steps"
+    USER ||--o{ PAYOUTAPPROVAL : acts
+
+    %% Optional DeletedById references: each remaining soft-deleted record has zero or one deleter.
+    DONOR o{--o| USER : deleted_by
+    FAMILY o{--o| USER : deleted_by
+    FAMILYMEMBER o{--o| USER : deleted_by
+    CASE o{--o| USER : deleted_by
+    DOCUMENT o{--o| USER : deleted_by
+    SPECIFICNEED o{--o| USER : deleted_by
+    REPORT o{--o| USER : deleted_by

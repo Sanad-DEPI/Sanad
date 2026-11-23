@@ -1,0 +1,88 @@
+# Shared AI instructions and configuration are intentionally NOT ignored:
+# AGENTS.md, .agents/, .github/, opencode.jsonc, .vscode/settings.json, .env.example
+
+# .NET / Visual Studio
+[Bb]in/
+[Oo]bj/
+.vs/
+artifacts/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.VisualState.xml
+*.nupkg
+packages/
+
+# Node / React
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.vite/
+.next/
+.turbo/
+dist/
+build/
+out/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test/coverage output
+coverage/
+coverage.*
+
+# VS Code (keep shared workspace settings)
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+
+# Secrets and local environment (keep examples)
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+secrets.json
+*.secrets.json
+appsettings.Local.json
+appsettings.*.local.json
+*.pfx
+*.key
+*.pem
+
+# Local databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+*.ndf
+localdb/
+.local/
+
+# Logs and temporary files
+logs/
+*.log
+tmp/
+temp/
+.tmp/
+*.tmp
+*.swp
+~$*
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini

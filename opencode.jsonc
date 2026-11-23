@@ -1,0 +1,5 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // OpenCode does not auto-load .agents/rules/*.md; load the shared team rules here.
+  "instructions": [".agents/rules/*.md"]
+}
