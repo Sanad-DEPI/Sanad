@@ -1,15 +1,8 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../features/auth/authContext'
-import { AppRoles } from '../types/roles'
 
 export function AppLayout() {
-  const { user, logout, hasRole } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login', { replace: true })
-  }
+  const { user } = useAuth()
 
   return (
     <div className="app-shell">
@@ -23,14 +16,11 @@ export function AppLayout() {
           <NavLink to="/" end>
             Dashboard
           </NavLink>
-          {hasRole(AppRoles.Manager) && <NavLink to="/manager">Manager</NavLink>}
+          <NavLink to="/manager">Manager</NavLink>
         </nav>
 
         <div className="header-actions">
-          <span className="header-email">{user?.email}</span>
-          <button type="button" className="button button--ghost" onClick={handleLogout}>
-            Log out
-          </button>
+          <span className="header-email">{user?.email ?? 'Guest'}</span>
         </div>
       </header>
 
