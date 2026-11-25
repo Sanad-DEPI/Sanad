@@ -9,6 +9,7 @@ Applies to `frontend/`. Also follow the root `AGENTS.md`.
 - `src/components` — reusable presentational components.
 - `src/features/<feature>` — pages and feature-specific components/logic.
 - `src/layouts` — shared page shells; `src/services` — API clients (Axios); `src/hooks` — reusable hooks; `src/types` — shared TypeScript types; `src/assets` — static assets.
+- `src/styles/tokens.css` — design tokens; `src/index.css` — global and shared component styles.
 - Keep UI separate from business logic. Reuse existing components and helpers before adding new ones; avoid excessive abstraction.
 
 ## Routing, layouts and auth
@@ -22,6 +23,17 @@ Applies to `frontend/`. Also follow the root `AGENTS.md`.
 - Centralize error extraction so pages show consistent messages. Handle 401 by clearing auth state.
 - Use local component state and the auth context. Do not introduce a global state library without an explicit decision.
 - Define shared API types in `src/types`; keep DTO shapes aligned with backend responses.
+
+## Design tokens and styling
+- Every color, font, font size, spacing, radius, shadow and control height comes from `src/styles/tokens.css`. Never hardcode hex values, px sizes or font names in CSS or TSX.
+- Brand colors are three families: primary (deep green), secondary (moss) and accent (gold). Gold is for highlights only, such as the donate button, progress bars and focus ring. Text on a brand color uses its `--color-on-*` token.
+- Need a value that does not exist? Add a token to `tokens.css` first, then use it. To rebrand, edit only `tokens.css`.
+- Token names follow `--category-name-modifier`, lowercase with hyphens, for example `--color-primary-hover` or `--space-4`.
+- Headings and the brand use `var(--font-family-display)` (El Messiri); everything else uses `var(--font-family)` (Readex Pro). Both support Arabic. Do not add other fonts, and never add letter-spacing, because it breaks Arabic letter joining.
+- Use logical CSS properties (`margin-inline`, `padding-inline`, `inset-inline-start`, `text-align: start`) so layouts work in RTL.
+- Class names are BEM style, lowercase: `button--primary`, `card__title`, `chip--accent`. Shared styles live in `src/index.css`.
+- Reuse `Button`, `Card`, `Progress`, `Alert` and `FormField` before creating new components. Variants and sizes are props that map to modifier classes.
+- Visual reference for every component is `src/features/design/DesignPreviewPage.tsx`.
 
 ## UI behavior
 - Implement loading, empty, error, and success states where applicable.
