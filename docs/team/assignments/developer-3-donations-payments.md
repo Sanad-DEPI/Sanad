@@ -6,6 +6,15 @@ Own donor business information, donation categories, donations, payment
 transactions, gateway integration boundaries, and payment confirmation. Payment
 provider, reconciliation, and detailed financial requirements remain pending.
 
+Role boundary: authenticated Donors may view only their own donation history,
+payment status, receipts, category, and anonymized impact updates; they may
+never browse or select families. Guest donations go to the general fund only,
+have no account association or category, and retain payment confirmation and
+receipt records. Do not expose beneficiary identities or case details.
+`DONATION.DonorId` is nullable for guest donations; `CategoryId` is also null
+for guests and denotes the general fund. `GuestReceiptEmail` is required for
+guest donations. Do not create a placeholder Donor account.
+
 ## 2. Entity ownership and ERD relationships
 
 Own exactly:
@@ -15,12 +24,16 @@ Own exactly:
 - `DONATION`
 - `PAYMENTTRANSACTION`
 
-`DONOR` has a unique string Identity `UserId`. `DONATION` references `DONOR`
-and `DONATIONCATEGORY`. `PAYMENTTRANSACTION` references `DONATION`. Module 4
-consumes `DONATION` through `DONATIONALLOCATION`; Module 5 may reference it
-for `DonationImpact` notifications. Financial records must not be physically
-deleted through normal operations. Follow the ERD for statuses, uniqueness,
-keys, and selective soft deletion.
+`DONOR` has a unique string Identity `UserId`. `DONATION.DonorId` is nullable:
+non-null identifies an authenticated Donor; null identifies a guest
+donation. `DONATION.CategoryId` is nullable: null denotes the general fund;
+non-null references an approved category. A guest donation has null
+`DonorId`/`CategoryId` and a required `GuestReceiptEmail`. `PAYMENTTRANSACTION`
+references every donation. Module 4 consumes `DONATION` through
+`DONATIONALLOCATION`; Module 5 may reference it for `DonationImpact`
+notifications. Financial records must not be physically deleted through normal
+operations. Follow the ERD for statuses, uniqueness, keys, and selective soft
+deletion.
 
 ## 3. Complete user-facing workflows
 

@@ -13,12 +13,14 @@ Find real defects and risks in a specific change, ordered by severity, with acti
 - Asked to check code for correctness, security, or financial/business-rule risks.
 
 ## Workflow
-1. **Define scope.** Read root `AGENTS.md`, `docs/integration/module-contracts.md`, the relevant area `AGENTS.md`, and shared rules. Get the exact diff and the stated intent. Only review what changed and its immediate context.
+1. **Define scope.** Read root `AGENTS.md`, `docs/integration/module-contracts.md`, the relevant area `AGENTS.md`, and shared rules. For changes involving registration, roles, authorization, beneficiary data, or financial workflows, also read Sections 4–5 of `docs/requirements/requirements.md`. Get the exact diff and the stated intent. Only review what changed and its immediate context.
 2. **Understand the change.** Trace the affected flow end to end before commenting. Check module ownership, duplicate entities, and shared migration coordination. For backend changes, check layer placement against `backend/AGENTS.md` and the `CurrentUser` reference feature.
 3. **Check each applicable area:**
    - Bugs: incorrect logic, null/empty handling, wrong status or error paths.
    - Architecture: dependency direction, business rules in controllers/Infrastructure, unnecessary abstractions, module ownership.
-   - Security and authorization: server-side enforcement, role checks, JWT handling, data exposure.
+   - Security and authorization: server-side enforcement, role checks against
+     the authoritative permission matrix, JWT handling, and data exposure.
+     Flag inferred/expanded permissions and ensure unresolved access is denied.
    - Privacy: beneficiary data in logs, APIs, files, or error messages.
    - Business rules: eligibility, scoring, allocation, and workflow state transitions.
    - Data integrity and concurrency: transactions, concurrent updates, idempotency, partial failures, migrations, and model snapshot consistency.

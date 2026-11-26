@@ -147,111 +147,143 @@ this conflict remains.
 | --- | --- |
 | Case | A family's aid request, identified in operational workflows by an anonymous Case ID. |
 | Main Admin | The SuperAdmin role for staff administration. This role has no automatic access to beneficiary identity or business data. |
+| Eligibility | Whether a family qualifies for assistance; distinct from priority, allocation, and payout. |
+| Priority score | The case score after applying the approved waiting-time factor; it orders eligible cases and does not determine eligibility. |
 | RBAC | Role-based access control. |
 | IPC | Income per capita after rent; its exact formula is unresolved in Section 5.4. |
 | Payout | A proposed or confirmed release of funds for a case, subject to the approval workflow. |
 | Proof | A document or other evidence submitted in support of a case. |
-| Priority score | The case score after applying the waiting-time factor. |
 | Identity user ID | The string key owned by ASP.NET Core Identity. |
 | Business entity ID | A GUID key for a business entity, as specified by the approved ERD. |
 
 ## 4. User roles, permissions, and privacy
 
-The system has exactly eight application roles. `Beneficiary` and `Donor` are
-public roles; `SuperAdmin`, `Manager`, `DocumentReviewer`, `FieldOfficer`,
-`PayoutAuditor`, and `Treasurer` are staff/administration roles. Guest donors
-do not need an account or application role.
+SANAD distinguishes public account types, staff roles, and guest donation:
 
-| Capability / data view | SuperAdmin | Manager | Payout Auditor | Treasurer | Document Reviewer | Field Officer | Beneficiary | Donor |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Manage staff accounts and staff roles | Yes | No | No | No | No | No | No | No |
-| View family identity (name, National ID, address, phone) | No automatic access | Unresolved; denied | Unresolved; denied | Unresolved; denied | Only as necessary for identity validation and document review | No | Own account only; family workflow not implemented | No |
-| View case information | No automatic access | Unresolved; denied | Unresolved; denied | Unresolved; denied | Only as necessary for review | Needs and valuation information only; no identity or identity documents | No case access until approved workflow exists | No case information |
-| Assess conditions and value needs | No | Unresolved | Unresolved | Unresolved | No | Yes, without identity data | No | No |
-| Verify identity and review identity documents | No | Unresolved; denied | Unresolved; denied | Unresolved; denied | Yes, only as necessary for identity validation and submitted-document review | No | No | No |
-| Authorize payout | No automatic access | Unresolved | No | No | No | No | No | No |
-| Audit payout file | No | No | Yes, duties only; data fields unresolved | No | No | No | No | No |
-| Execute payout | No | No | No | Yes, duties only; data fields unresolved | No | No | No | No |
-| Donate | No | No | No | No | No | No | No | Yes; guests may donate without an account |
-| Generate reports | No automatic access | Unresolved | Unresolved | Unresolved | No | No | No | Own donation receipts only |
+| Account type / role | Creation and assignment | Approved responsibility and boundary |
+| --- | --- | --- |
+| Super Admin | Staff account created and assigned through the administrative process; initial account provisioned by secure, idempotent seeding | Manages staff accounts, staff roles and access, and system-level administration. This role does not automatically grant access to beneficiary cases, identity documents, donations, allocations, or payouts, or authorize charity operations. |
+| Manager | Staff account created and assigned by Super Admin | Reviews system eligibility recommendations and makes the final eligibility decision; may override the recommendation only with a reason while preserving both recommendation and decision. The only role that may deactivate/reactivate a family account; deactivation requires a reason. Participates in the approved payout authorization step. |
+| Document Reviewer / Validator | Staff account created and assigned by Super Admin | Verifies National IDs and submitted documents; handles correction requests and verification outcomes; records whether each specific need is suitable for partial assistance and why, or requires full assistance and why partial assistance is unsuitable. Does not decide final family eligibility, authorize allocation, or execute payouts. |
+| Field Officer | Staff account created and assigned by Super Admin | Performs family valuation and needs assessment using a case reference and only the non-identifying assessment information needed, including household size, income, expenses, housing conditions, and medical and education needs. Must not access names, contact information, National IDs, identity documents, or unnecessary identifying information; must not perform identity verification or family registration. |
+| Payout Auditor | Staff account created and assigned by Super Admin | Performs only the assigned payout auditing responsibilities in the approved payout workflow. Do not infer access to identity information or unrelated modules. |
+| Treasurer | Staff account created and assigned by Super Admin | Executes payouts only after required Manager authorization and Payout Auditor approval. Must not independently approve their own payout or gain unrelated module access. |
+| Donor | Public registration path; system assigns the Donor role | Authenticated donations; may view only their own donation history, payment status, receipts, category, and anonymized impact updates. May donate to the general fund or an approved category, never select a family, browse cases, or see beneficiary identity/private case information. |
+| Beneficiary | Public registration path; system assigns the Beneficiary role | Registers their family and submits applications; may track only their own family's cases, statuses, corrections, decisions, and relevant notifications. May request information updates for authorized staff review and withdraw a submitted case before payout subject to safeguards. Cannot view other families or priority scores, change account type, or reopen a withdrawn case. |
+| Guest donor | No account or role | May donate to the general fund only, providing amount, payment details, and an email for receipt. Guest donations are not associated with a Donor account or donation category. Financial records and payment confirmations are retained. |
+
+Donor and Beneficiary are mutually exclusive account roles. Public registration
+offers only the Donor and Beneficiary paths and the system assigns the matching
+role; it never offers staff roles. Users cannot change account type themselves.
+They must contact administration and follow an authorized administrative
+process. Beneficiary registration is not an eligibility decision or approval
+for assistance.
+
+The table defines responsibilities, not blanket access to all data needed to
+perform them. Apply least privilege and server-side authorization. Grant only
+the minimum data explicitly approved for a task; do not infer permissions from
+role names, entity ownership, UI visibility, or the ERD. In particular,
+beneficiary identity-data access for Manager, Payout Auditor, and Treasurer is
+**UNRESOLVED — REQUIRES DECISION**. Any access beyond the Document Reviewer’s
+identity/document verification task or the Field Officer’s explicitly
+non-identifying assessment view is not authorized by this requirements
+document.
 
 ### 4.1 Authorization and privacy requirements
 
-- **FR-ROLE-1:** The system shall support exactly the eight roles listed above.
+- **FR-ROLE-1:** The system shall distinguish the approved public account
+  types, staff roles, and guest-donor flow above. Donor and Beneficiary are
+  mutually exclusive account roles; a guest donor has no account role.
 - **FR-ROLE-2:** Each protected API operation shall enforce the required role
   or policy on the server. Unauthorized access shall not be granted; requests
   from authenticated users without permission shall return HTTP 403.
-- **FR-ROLE-3:** SuperAdmin may manage staff accounts and staff roles, but
-  receives no automatic access to beneficiary cases, identity documents,
-  donations, allocations, or payouts.
-- **FR-ROLE-4:** Manager, Payout Auditor, and Treasurer shall not receive
-  unresolved identity-data or business-data permissions. Access remains denied
-  until the authorization matrix is approved.
-- **FR-ROLE-5:** Field Officers shall assess financial/living conditions and
-  value needs without accessing beneficiary identity, National IDs, or
-  identity documents. Donors shall not see case information.
-- **FR-ROLE-6:** Any future staff role-assignment changes shall be audit-logged.
-- **FR-ROLE-7:** Role-assignment changes shall be audit-logged and take effect
-  on the next token refresh, subject to the approved token lifecycle.
-- **FR-ROLE-8:** The Document Reviewer may access identity information and
-  identity documents only as necessary for identity validation and review.
-- **FR-ROLE-9:** The Payout Auditor and Treasurer may perform their respective
-  payout duties, but their accessible data fields remain unresolved and denied.
-- **FR-ROLE-10:** Each role shall receive only the information needed for its
-  decision. Documents are evidence; they do not grant access to the identity
-  profile. Donors shall never browse, search, or select cases.
-- **FR-ROLE-11:** No user may perform more than one approval step for the same
-  payout. A Manager may not execute a transfer.
-- **FR-ROLE-12:** Public registration shall assign only one of `Donor` or
-  `Beneficiary`. It shall not accept arbitrary role names or create staff
-  accounts. Users cannot change their own account type; an authorized
-  administrative process is required.
+- **FR-ROLE-3:** Public registration shall assign only the selected public
+  account type. Staff roles can be assigned or changed only by Super Admin
+  through the administrative process. Users cannot change their own account
+  type or role.
+- **FR-ROLE-4:** Super Admin access is limited to staff/system administration
+  unless a separate business-data permission is explicitly approved. Staff
+  administration does not imply access to beneficiary or financial records.
+- **FR-ROLE-5:** Field Officer assessment views shall use a case reference and
+  only necessary non-identifying information; they shall exclude names,
+  contact information, National IDs, identity documents, and unnecessary
+  identifying information.
+- **FR-ROLE-6:** Donors and guest donors shall not browse, search, select, or
+  receive information about individual beneficiary cases. Donors may see only
+  their own donation information and anonymized impact updates.
+- **FR-ROLE-7:** Beneficiaries shall access only their own family's data and
+  shall never receive another family's information or priority score.
+- **FR-ROLE-8:** Document Reviewer access shall be limited to National ID and
+  submitted-document information strictly necessary for verification, related
+  correction handling, and verification outcomes; it does not grant general
+  access to the identity profile. This role shall not receive final eligibility,
+  allocation, or payout authority.
+- **FR-ROLE-9:** Manager shall make final eligibility decisions and may
+  override system recommendations only with a recorded reason. Preserve the
+  original recommendation and final decision. Manager must not silently
+  modify calculated priority scores.
+- **FR-ROLE-10:** Only Manager may deactivate or reactivate a family account.
+  Deactivation requires a recorded reason.
+- **FR-ROLE-11:** Payout authorization, audit, and execution are separate
+  steps. A user may not perform multiple approval steps for the same payout;
+  Treasurer cannot approve their own payout and can execute only after Manager
+  authorization and Payout Auditor approval.
+- **FR-ROLE-12:** Staff account creation, staff-role assignment/change, and
+  staff activation/deactivation belong to Super Admin. Record these security-
+  sensitive changes in the audit trail.
+- **FR-ROLE-13:** Guest donations must not create or imply a Donor account and
+  must not be assigned a donation category.
+- **FR-ROLE-14:** Each role receives only data explicitly needed for its
+  approved responsibility. Backend APIs, reports, exports, logs, and
+  notifications enforce the same privacy boundary; frontend route guards are
+  not authorization.
+- **FR-ROLE-15:** Role-assignment changes shall be audit-logged and take effect
+  on the next token refresh, subject to the approved token lifecycle. Any
+  explicitly approved access to beneficiary identity data shall also be
+  audit-logged.
 
-The family is responsible for entering and submitting its own registration
-information. The Field Officer assesses financial and living conditions,
-evaluates needs, and provides valuations without access to family identity,
-National IDs, or identity documents.
-
-Beneficiary registration does not approve a family for assistance. Family
-ownership, registration, and case workflows remain out of scope for the
-authentication foundation. Guest donations do not require registration or a
-Donor role.
-
-**UNRESOLVED — REQUIRES DECISION:** finalize Manager, Payout Auditor, and
-Treasurer data-access permissions and the staff account-management API/audit
-contract before implementing those operations.
-
-**UNRESOLVED — REQUIRES DECISION:** the permission matrix does not define every
-read, update, correction, export, and deletion permission. Approve a complete
-authorization matrix before implementing those operations.
+**UNRESOLVED — REQUIRES DECISION:** define whether Manager, Payout Auditor, or
+Treasurer may access any beneficiary identity information, and the exact
+minimum case, document, scoring, financial, and report fields each may view.
+Do not grant such access based on prior matrices, the ERD, or assumptions about
+their workflow. The exact read/update/export/delete permissions not defined
+above also require approval.
 
 ## 5. Functional requirements
 
-Requirements below are retained from the supplied specification unless marked
+Requirements below preserve the supplied specification's detailed content
+unless an explicit approved project decision supersedes it or an item is marked
 unresolved. Their presence does not indicate that they have been implemented.
 
 ### 5.1 Authentication, accounts, and National ID
 
-#### Authentication and accounts
+#### Authentication, registration, and accounts
 
 - **FR-AUTH-1:** The system shall authenticate users through ASP.NET Core
   Identity and issue short-lived JWT access tokens with refresh-token rotation.
   The original target access-token lifetime is 15 minutes.
 - **FR-AUTH-2:** Passwords shall be stored using secure password hashing.
   Accounts shall be locked after five failed login attempts.
-- **FR-AUTH-3:** Donors shall verify their email address during registration.
+- **FR-AUTH-3:** Public registration shall offer exactly two paths: Donor or
+  Beneficiary. The system assigns the corresponding mutually exclusive public
+  role. Public registration must never offer or assign staff roles.
+- **FR-AUTH-4:** A Beneficiary registration creates a family assistance
+  account/application path; it does not automatically make that family
+  eligible or approved for assistance.
+- **FR-AUTH-5:** Donors shall verify their email address during registration.
   Phone verification by OTP is optional in the original specification.
-- **FR-AUTH-4:** Staff accounts shall be created and managed only through an
-  authorized administrative process; the approved role for staff
-  administration is SuperAdmin.
-- **FR-AUTH-5:** Authentication, login, and OTP endpoints shall be protected
+- **FR-AUTH-6:** Except for the initial Super Admin provisioned as described
+  in FR-AUTH-8, staff accounts shall be created through the administrative
+  process. Only Super Admin may create staff accounts, assign or change staff
+  roles, and activate or deactivate staff accounts.
+- **FR-AUTH-7:** Users cannot change their account type themselves. A requested
+  change requires contact with administration and an authorized administrative
+  process.
+- **FR-AUTH-8:** The initial Super Admin shall be provisioned by secure,
+  idempotent seeding. Credentials must come from configuration or secure
+  secrets and must never be committed to Git or stored as plaintext passwords.
+- **FR-AUTH-9:** Authentication, login, and OTP endpoints shall be protected
   against repeated attempts as specified by NFR-1.
-- **FR-AUTH-6:** Public registration shall accept only `Donor` or
-  `Beneficiary`; registration shall not create a family record or approve
-  eligibility for assistance.
-- **FR-AUTH-7:** A public account shall have no more than one public role.
-  Public users cannot change their own account type. Guest donations do not
-  require an account.
 
 Donor email delivery/verification is not implemented in the foundation. Donor
 accounts remain unable to sign in until an approved email-delivery and
@@ -282,10 +314,17 @@ the structural National ID parser.
 
 ### 5.2 Family registration and case management
 
-- **FR-CASE-1:** A family shall enter and submit its own registration
-  information through the platform, subject to National ID validation and
-  privacy requirements. The Field Officer shall assess financial and living
-  conditions and value needs without access to family identity data.
+- **FR-CASE-1:** A Beneficiary shall be able to register their own family and
+  members, subject to National ID validation and privacy requirements.
+  Authorized staff may perform only the family/case operations explicitly
+  assigned to their role; Field Officers must not perform family registration.
+- **FR-CASE-1a:** Each Beneficiary account owns exactly one family, and each
+  family has exactly one primary Beneficiary account. Link the family to the
+  existing ASP.NET Core Identity user ID; do not create a duplicate Identity
+  user entity. Establish the account and family ownership link atomically so a
+  Beneficiary account cannot exist without its family or own multiple
+  families. This ownership link does not change the responsibilities of
+  `FAMILY` or `FAMILYMEMBER`.
 - **FR-CASE-2:** A case shall be associated with its family through an
   internal identifier and shall use an anonymous Case ID in operational
   workflows.
@@ -303,10 +342,43 @@ the structural National ID parser.
   type, provider status, children under six, chronic illness count, disability
   severity, medical expenditure, school-age children, children in school, and
   home condition.
+- **FR-CASE-7:** A family may submit multiple cases over time, but may have
+  only one active case at a time. If an active case exists, the system shall
+  block another submission and explain why. Once the previous case is closed,
+  the family may submit another case.
+- **FR-CASE-8:** Each case has its own assessment, needs, status, and priority
+  calculation. Previous cases remain available for authorized historical
+  reference.
+- **FR-CASE-9:** A family may withdraw a submitted case at any stage before
+  payout. Withdrawal requires deliberate confirmation and a clear explanation
+  of consequences; the withdrawal reason is optional. Retain the withdrawn
+  case for history and audit, do not delete it, and do not allow it to be
+  reopened. The family must submit a new case when eligible.
+- **FR-CASE-10:** If funds were allocated before withdrawal, follow the
+  approved allocation-reversal workflow. Never silently release or reuse
+  allocated funds.
+- **FR-CASE-11:** Deactivating a family account pauses its active case.
+  Reactivation resumes that case from its previous workflow stage. Preserve
+  the original submission date and complete history.
+- **FR-CASE-12:** Only Manager may deactivate or reactivate a family account.
+  Deactivation requires a mandatory reason. Notify the family of deactivation
+  or reactivation and include the reason where applicable.
+- **FR-CASE-13:** A family account remains active after all its cases are
+  closed. A family may request account deletion only when it has no active
+  cases or financial records. Account deletion must not delete legally
+  required financial, allocation, payout, or audit records.
+- **FR-CASE-14:** Beneficiaries may request updates to submitted family
+  information; the changes do not take effect until authorized staff review.
 
 **UNRESOLVED — REQUIRES DECISION:** the exact case-state transition graph,
 correction and resubmission path after rejection, conditions for reopening a
 case, and the point at which the one-to-one survey must exist are not defined.
+Align the case lifecycle and statuses to the approved ERD before implementation;
+do not change the ERD or invent status values to represent closure, withdrawal,
+or pause.
+The persistence shape for preserving both an eligibility recommendation and
+the Manager's final decision also requires an approved implementation contract;
+the decision history itself is required.
 
 **UNRESOLVED — REQUIRES DECISION:** Module 1 owns `CASE` and
 `CASESTATUSHISTORY`; Module 2 owns `DOCUMENT` and document verification. The
@@ -322,9 +394,10 @@ change the agreed module ownership.
   proof, medical reports, and rent or housing proof.
 - **FR-DOC-2:** The original proof workflow shall support `Draft`,
   `Pending Review`, `Verified`, and `Rejected` states.
-- **FR-DOC-3:** Only the Document Reviewer shall verify or reject proofs or
-  the case as agreed in the cross-module contract. Rejection shall require a
-  reason.
+- **FR-DOC-3:** Only the Document Reviewer shall verify or reject proofs.
+  Rejection shall require a reason. The case-verification state transition
+  owner remains subject to the Module 1/Module 2 contract and shall not be
+  treated as the final family eligibility decision.
 - **FR-DOC-4:** The reviewer queue shall identify cases by anonymous Case ID
   and display only evidence needed for review. It shall not display the
   identity profile, contact details, address, or full family composition.
@@ -337,9 +410,13 @@ change the agreed module ownership.
 - **FR-DOC-8:** Document review shall be evidence-only. Names printed on a
   proof are part of the evidence and shall not be searchable, copied into
   system identity fields, or included in exports through reviewer workflows.
-- **FR-DOC-9:** Every reviewer or auditor document view shall be logged. The
-  displayed document shall carry a watermark identifying the viewer by
+- **FR-DOC-9:** Every authorized document view shall be logged. The displayed
+  document shall carry a watermark identifying the viewer by
   username.
+- **FR-DOC-10:** For each specific need, the Document Reviewer / Validator
+  shall explicitly record whether partial assistance is suitable and why, or
+  whether full assistance is required and why partial assistance is
+  unsuitable. The system shall not automatically split every need.
 
 **UNRESOLVED — REQUIRES DECISION:** the source does not define document
 replacement, resubmission, retention, permitted file counts, malware scanning,
@@ -351,7 +428,11 @@ both. Do not assume the case-state flow fully defines each document's lifecycle.
 The scoring engine shall produce a need score from 0 to 100, with higher scores
 representing greater need. It shall calculate component scores `F` (Financial),
 `S` (Social), `H` (Health), and `E` (Education & Living), then apply a
-waiting-time factor to produce `PriorityScore`.
+waiting-time factor to produce `PriorityScore`. Keep eligibility, priority,
+allocation, and payout separate: the system produces an eligibility
+recommendation and calculates priority; Manager makes the final eligibility
+decision; priority orders eligible cases for allocation and is not an approval
+or a financial transaction.
 
 #### Master base score
 
@@ -421,31 +502,43 @@ education expression.
 
 #### Waiting-time factor, priority score, and rule versions
 
-- `D` is the number of days since submission for review. The waiting clock is
-  described as pausing while a case is rejected and awaiting corrections.
+- `D` is the number of days since successful application submission. Waiting
+  time continues during verification, assessment, and waiting for funds.
+  Rejection/correction handling does not silently pause or reset this clock.
 - `W = 1 + lambda * (min(D, D_max) / D_max)`.
 - Source defaults are `lambda = 0.30` and `D_max = 60` days.
 - `PriorityScore = min(100, BaseScore * W)`.
 - Priority bands are Critical 80–100, High 60–79, Medium 40–59, and Low 0–39.
+- **FR-ELIG-1:** The system shall apply the approved eligibility rules and
+  produce an eligibility recommendation and calculate each case's priority
+  score. Manager reviews the eligibility recommendation and
+  makes the final eligibility decision. Manager may
+  override the recommendation only with a mandatory reason. Preserve both the
+  original recommendation and final decision and their history. Eligibility
+  and priority remain distinct; an eligible case can wait for funds without
+  losing eligibility or priority.
 - **FR-SC-1:** Scores shall be computed automatically from verified inputs
   and recomputed when applicable verified inputs change.
 - **FR-SC-2:** Every result shall retain its component breakdown, inputs used,
   BaseScore, waiting days, W, PriorityScore, and rule version.
-- **FR-SC-3:** The original specification requires the Main Admin to configure
-  weights, threshold, point values, waiting factor, and maximum wait without
-  redeployment.
+- **FR-SC-3:** The original specification requires an authorized administrator
+  to configure weights, threshold, point values, waiting factor, and maximum
+  wait without redeployment. The role authorized to edit scoring rules is
+  **UNRESOLVED — REQUIRES DECISION**; neither Manager nor Super Admin receives
+  this permission by implication.
 - **FR-SC-4:** Scoring shall be deterministic and independently testable, with
   documented cases for each priority band.
 - **FR-SC-5:** Users shall not manually override a score. Corrections shall be
   made through input or rule changes and audited.
-- **FR-SC-6:** The Main Admin shall manage scoring parameters through an
-  administrative workflow.
+- **FR-SC-6:** Scoring-parameter changes require an explicitly approved
+  administrative workflow and audit trail. No role may silently change a
+  calculated priority score.
 - **FR-SC-7:** The system shall reject a rule set with weights outside `[0, 1]`
   or whose sum is not `1.00`.
 - **FR-SC-8:** Each saved rule set shall create a new version. Only one version
   shall be active at a time; historical results shall retain the version used.
-  The Main Admin may choose whether open cases are recalculated after a rule
-  change.
+  Whether open cases are recalculated after a rule change requires an approved
+  decision.
 - **FR-SC-9:** A daily job shall update waiting-time-dependent priority.
   BaseScore changes only when applicable case inputs or scoring rules change.
 - **FR-SC-10:** Each result shall persist BaseScore, waiting days, W, and
@@ -455,9 +548,9 @@ education expression.
 `lambda`, and `D_max`; formula variants above; rounding and precision; priority
 band boundaries for non-integer scores; behavior for zero family size or zero
 income; behavior for negative income after rent; handling of missing inputs;
-and tie-breaking between equal priority scores. The source uses `D` for both
-disability and waiting days; use of distinct notation must be agreed without
-changing the underlying meaning.
+the role authorized to manage scoring rules; and tie-breaking between equal
+priority scores. The source uses `D` for both disability and waiting days; use
+of distinct notation must be agreed without changing the underlying meaning.
 
 ### 5.5 Specific needs and valuation
 
@@ -484,14 +577,19 @@ and excess-fund handling remain unresolved.
 - **FR-PAY-2:** Raw card data shall not pass through or be stored on SANAD
   servers. Use the gateway's hosted checkout or iframe and retain the
   transaction reference and status.
-- **FR-PAY-3:** The intended payment flow is: create a Pending donation, send
-  the donor to the gateway, receive the gateway webhook, verify its HMAC
+- **FR-PAY-3:** The intended authenticated and guest payment flow is: create a
+  Pending donation with the applicable Donor/category/guest receipt fields,
+  send the donor to the gateway, receive the gateway webhook, verify its HMAC
   signature, then mark the payment Succeeded or Failed.
 - **FR-PAY-4:** Webhook processing shall be idempotent. Replaying a gateway
   transaction reference shall not credit a donation more than once.
-- **FR-PAY-5:** Donors may contribute to a general fund or an approved
-  donation category, such as Education or Health. Donors shall not choose or
-  see a beneficiary case.
+- **FR-PAY-5:** Authenticated Donors may contribute to a general fund or an
+  approved donation category, such as Education or Health. Guest donors may
+  contribute to the general fund only and cannot select a category. In
+  `DONATION`, null `CategoryId` means general fund; a non-null category is an
+  approved donation category. Guest donations have null `DonorId` and
+  `CategoryId`, and a separate guest receipt email. Neither path shall choose
+  or see a beneficiary case.
 - **FR-PAY-6:** An operating fee may be configurable. If enabled, it shall be
   shown transparently before payment.
 - **FR-PAY-7:** Failed or abandoned payments shall expire after 30 minutes.
@@ -500,13 +598,17 @@ and excess-fund handling remain unresolved.
   shall be recorded in the immutable financial ledger within the approved
   transaction boundary.
 - **FR-PAY-9:** Payouts shall follow the three-step workflow in Section 5.8.
-- **FR-PAY-10:** Donors shall be able to download a PDF receipt for each
-  successful payment.
+- **FR-PAY-10:** Donors and guest donors shall be able to receive a receipt for
+  each successful payment. Donors may download their own PDF receipts; guest
+  receipts are sent to the email address provided for the donation.
 - **FR-PAY-11:** Payment and payout state changes shall follow the approved
   state machines; a returned payout shall include the Auditor's reason.
 - **FR-PAY-12:** Before approving a payout, the Payout Auditor shall check
-  verified documents, the existence of a score, the approved need price or
-  ceiling, and the absence of a duplicate payout for the same period.
+  approved payout requirements, including verified-document completion,
+  existence of a score, approved need price or ceiling, and absence of a
+  duplicate payout for the same period. Access to underlying documents,
+  scoring details, or beneficiary identity information is not implied by this
+  checklist and requires explicit approval.
 - **FR-PAY-13:** Only an audit-approved payout may be executed by the Treasurer.
   Its amount shall be locked after audit; changing it restarts the approval
   chain.
@@ -524,8 +626,10 @@ definition of a duplicate payout period.
 
 ### 5.7 Fund allocation and financial integrity
 
-- **FR-ALL-1:** Donors shall contribute to the general fund or an approved
-  category; they shall never browse, search, or select cases.
+- **FR-ALL-1:** Authenticated Donors shall contribute to the general fund or
+  an approved category. Guest donations shall target the general fund only,
+  with no donation category or Donor account association. Neither path shall
+  browse, search, or select cases.
 - **FR-ALL-2:** Confirmed donations shall be allocated to eligible verified
   cases and needs in descending PriorityScore order under the approved
   allocation policy.
@@ -535,6 +639,18 @@ definition of a duplicate payout period.
 - **FR-ALL-4:** Allocation shall be transactional and shall never exceed the
   remaining approved need amount.
 - **FR-ALL-5:** Stock and item-donation tracking are out of scope.
+- **FR-ALL-6:** Eligible cases are considered for allocation in descending
+  priority order under the approved allocation policy. The system may
+  automatically allocate available funds only under approved allocation rules
+  and safeguards. Automatic allocation must prevent duplicate allocations,
+  over-allocation, and concurrent allocation conflicts.
+- **FR-ALL-7:** Automatic allocation does not authorize or execute a payout.
+  Allocation and payout are distinct financial workflow stages.
+- **FR-ALL-8:** Each need is assessed and tracked separately. Partial
+  assistance is permitted only when the Validator explicitly records that the
+  need is suitable for partial assistance and gives a reason. Do not
+  automatically split every need. When full assistance is required, record
+  why partial assistance is unsuitable.
 
 The approved contract additionally requires `DONATIONALLOCATION.CaseId` and
 requires an associated `SPECIFICNEED` to belong to that same case.
@@ -565,8 +681,15 @@ remain separate for each payout: no user may perform multiple approval steps,
 and a Manager cannot execute a transfer. The approved amount is locked after
 audit; any approved amount change restarts the chain.
 
-**UNRESOLVED — REQUIRES DECISION:** decide whether Manager authorization is
-required for every payout or only above a threshold; define status transitions
+Automatic allocation never automatically authorizes or executes a payout.
+Every payout follows Manager authorization → Payout Auditor review → Treasurer
+execution. Payout Auditor responsibilities are limited to the assigned audit
+step, and Treasurer responsibilities are limited to executing a properly
+authorized and audited payout. Do not grant either role unrelated module
+permissions or infer access to beneficiary identity information.
+
+Manager authorization is required for every payout in the approved workflow.
+**UNRESOLVED — REQUIRES DECISION:** define status transitions
 for failed, returned, retried, or cancelled payouts; define how cash handover
 is evidenced; define when a payout is considered executed; and confirm the
 meaning of the source's "duplicate payout in the same period" rule.
@@ -626,8 +749,9 @@ channel preference; reconcile those requirements.
   6. Audit-log extract.
 - **FR-REP-3:** Reports shall include a title, date range, generator name,
   report ID, page numbers, and official footer.
-- **FR-REP-4:** Reports for non-Manager roles shall apply the privacy
-  restrictions in Section 4.
+- **FR-REP-4:** Reports for every role shall apply the approved, least-
+  privilege permissions in Section 4. A report must not imply access to
+  beneficiary identity information that is otherwise unapproved.
 - **FR-REP-5:** Monthly reports shall be generated automatically, stored, and
   have download history.
 - **FR-REP-6:** Reports shall support approved date-range, campaign, and status
@@ -646,7 +770,8 @@ This section gathers rules that govern more than one endpoint or module. A
 listed rule remains subject to any explicit unresolved marker above.
 
 1. Identity and case data shall be protected server-side, not only hidden in
-   the user interface.
+   the user interface, and returned only to explicitly authorized roles for
+   approved purposes.
 2. A donor contributes money to a fund or category and never selects or
    browses a case.
 3. An unverified case is ineligible for scoring for publication and aid.
@@ -686,11 +811,12 @@ ERD.
   defined by ASP.NET Core Identity. The project shall not create a duplicate
   `USERROLE` table or replace Identity's schema.
 - **DR-3:** Family identity data shall be stored separately from case workflow
-  data and linked only by an internal identifier. Manager access is for
-  management purposes; Document Reviewer access is limited to identity
-  validation and necessary document review. Field Officers and Donors shall not
-  access family identity.
-- **DR-4:** National IDs shall be encrypted at rest using AES-256-GCM.
+  data and linked only by an internal identifier. Case queries shall not expose
+  the identity profile except to explicitly authorized roles for approved
+  purposes; permissions for Manager, Payout Auditor, and Treasurer remain
+  unresolved as stated in Section 4.
+- **DR-4:** National ID and contact data shall be encrypted at rest. National
+  IDs shall use AES-256-GCM.
   Duplicate detection shall use HMAC-SHA-256 with a dedicated secret key
   separate from the encryption key. Store the ciphertext and HMAC hash, and
   enforce a unique database index on `NationalIdHash`. Keys shall be supplied
@@ -726,6 +852,24 @@ ERD.
 - **DR-14:** The case survey is one-to-one with its case in the approved ERD.
   A family has one or more family members; a family may have zero or more
   cases. Follow the remaining cardinalities in the approved ERD.
+- **DR-14a:** `FAMILY.PrimaryBeneficiaryUserId` is a required, unique string
+  foreign key to the existing Identity `USER.Id`. It references a user with
+  the Beneficiary role. Each family has exactly one primary Beneficiary and
+  each Beneficiary account owns exactly one family. Since a foreign key only
+  ensures that a Beneficiary has at most one family, account creation must
+  atomically create/link exactly one family for every Beneficiary account. Do
+  not create a duplicate user entity; `FAMILYMEMBER` remains owned by and
+  related to `FAMILY` as defined by the ERD.
+- **DR-14b:** `DONATION.DonorId` is nullable and references `DONOR` when
+  non-null; null means guest donation. `DONATION.CategoryId` is nullable; null
+  means general fund, and non-null references an approved donation category.
+  Guest donations require `GuestReceiptEmail`, and must have null `DonorId`
+  and `CategoryId`. Authenticated donations have a `DonorId` and no
+  `GuestReceiptEmail`; their nullable `CategoryId` selects a category or the
+  general fund.
+- A family may have only one active case at a time. Closure, withdrawal, and
+  pause lifecycle representation must be reconciled with the existing case-
+  status ERD without changing that approved ERD.
 
 ### 7.3 History, ledger, allocation, and notification integrity
 
@@ -753,6 +897,13 @@ ERD.
   case surveys, and other entities without soft-delete fields shall not be
   physically deleted through normal operations. No cascade physical deletion
   shall erase related history.
+- **DR-22:** A family has at most one active case at a time; each case retains
+  its own history, assessment, needs, and priority. The lifecycle behavior in
+  Section 5.2 is required without changing the approved ERD.
+- **DR-23:** Donations remain financial records regardless of donor type.
+  Payment transactions, confirmations, receipts, and ledger tracking apply to
+  both authenticated and guest donations. Guest status does not imply a
+  placeholder Donor account.
 
 **UNRESOLVED — REQUIRES DECISION:** define National ID canonicalization before
 HMAC calculation, key identifiers and rotation procedures, retention/erasure
@@ -770,8 +921,11 @@ reports, notifications, and soft-deleted personal data also remain open.
 - **NFR-1 — Security:** All traffic shall use HTTPS/TLS. JWT access tokens
   shall have a 15-minute target lifetime and refresh tokens shall rotate.
   Apply OWASP Top 10 mitigations and rate-limit login and OTP endpoints.
-- **NFR-2 — Privacy:** Family identity shall be available only to the
-  Manager, enforced by server-side authorization and automated tests.
+- **NFR-2 — Privacy:** Family identity and documents shall be protected by
+  server-side authorization and automated tests that enforce the approved
+  least-privilege boundaries in Section 4. Do not treat Manager as the
+  automatic identity-data role; unresolved access must remain denied until
+  approved.
 - **NFR-3 — Performance:** The original target is 95% of API calls under
   800 ms for 500 concurrent users, and PDF reports under 10 seconds for
   10,000 rows. Workload and measurement method require validation.
@@ -874,58 +1028,80 @@ unresolved rules or API shapes listed elsewhere.
 
 ### UC-1 — Donate
 
-1. Donor chooses an amount and general fund or approved donation category; no
-   case is displayed or selectable.
+1. An authenticated Donor chooses an amount and the general fund or an
+   approved donation category. A guest donor provides an amount, payment
+   details, and receipt email and is limited to the general fund. No case is
+   displayed or selectable in either flow.
 2. The system creates a pending donation and presents the approved gateway
    checkout.
 3. The gateway reports the result by webhook.
 4. The system verifies the signature and processes the transaction
    idempotently.
-5. On confirmed success, record the donation/ledger effects and queue a receipt
-   and privacy-safe impact message.
+5. On confirmed success, record the donation/ledger effects and queue a receipt.
+   Associate it with a Donor account only for authenticated donations; send a
+   guest receipt to the supplied email. Donor impact messages remain
+   anonymized.
 
 ### UC-2 — Register and verify a case
 
-1. Authorized staff enter family and member information.
-2. The system validates National IDs and rejects duplicates.
-3. Staff create a case using an anonymous Case ID and submit required proofs.
-4. The Document Reviewer reviews only the allowed evidence and verifies or
-   rejects with a reason.
-5. The system records status history. The case is ineligible for scoring and
-   aid until verified.
+1. The person selects the Beneficiary public registration path; the system
+   assigns the Beneficiary role and does not treat registration as an approval
+   for assistance.
+2. The Beneficiary registers their family, submits an application and required
+   proofs, and receives an anonymous Case ID for operational tracking.
+3. The system validates National IDs and rejects duplicates.
+4. The Document Reviewer / Validator verifies National IDs and documents,
+   handles corrections, and records verification outcomes and per-need partial
+   assistance suitability as applicable.
+5. The Field Officer receives the Case ID and only the non-identifying
+   assessment information needed to complete valuation and assessment.
+6. The system records history. The case is ineligible for scoring and aid
+   until required verification is complete; the Manager makes the final
+   eligibility decision after reviewing system recommendations.
 
-The role visibility and Module 1/Module 2 ownership conflict in this workflow
-must be resolved before implementation.
+The exact data fields in Manager, Payout Auditor, and Treasurer views, and the
+Module 1/Module 2 case-status ownership contract, must be approved before
+implementation.
 
 ### UC-3 — Score a case
 
 1. The system loads verified case inputs and the active scoring-rule version.
-2. It calculates component scores, BaseScore, waiting-time factor, and
-   PriorityScore.
-3. It stores the breakdown, inputs, and rule version for auditability.
-4. The case is ordered for allocation according to the approved priority
-   policy and remains invisible to donors.
+2. It applies the approved eligibility rules and calculates component scores,
+   BaseScore, waiting-time factor, and PriorityScore.
+3. It stores the system eligibility recommendation, calculation breakdown,
+   inputs, and rule version for auditability.
+4. Manager reviews the recommendation and records the final eligibility
+   decision. An override requires a reason and preserves both decisions.
+5. Eligible cases are considered for allocation according to approved
+   priority policy and remain invisible to donors.
 
 Execution is blocked until the conflicting formulas and related scoring
 decisions are approved.
 
 ### UC-4 — Request and fund a specific need
 
-1. A family requests an item.
-2. A Valuation/Field Officer records its approved description and price.
-3. Confirmed donations are allocated without exceeding the remaining need
-   amount.
-4. The charity purchases the item; the system tracks funding and closes the
+1. A family requests a specific need.
+2. A Field Officer records its assessment and valuation using the assigned
+   case reference and only non-identifying information.
+3. The Document Reviewer / Validator records whether partial assistance is
+   suitable and why, or why full assistance is required.
+4. Confirmed donations are allocated without exceeding the remaining need
+   amount and only under the approved allocation policy.
+5. The charity purchases the item; the system tracks funding and closes the
    need when fully covered.
 
 ### UC-5 — Authorize and execute a payout
 
-1. The Manager authorizes an amount for an anonymous Case ID.
-2. The Payout Auditor checks the evidence, score, approved amount/ceiling, and
-   duplicate-payout rule; the Auditor approves or returns it with a reason.
+1. The Manager authorizes a payout.
+2. The Payout Auditor performs the assigned audit step and approves or returns
+   it with a reason.
 3. The Treasurer executes only an audit-approved payout and records its
    transfer reference.
 4. Each step is recorded, and a privacy-safe impact notification may be queued.
+
+Do not grant identity-data access to the Payout Auditor or Treasurer unless
+that access is explicitly approved. The automatic allocation process never
+authorizes or executes this payout.
 
 ### UC-6 — Generate a monthly report
 
@@ -984,8 +1160,11 @@ They are not evidence that the feature is already implemented.
 - **AC-05:** A scoring-rule set with weights not summing to 1.00 or outside
   `[0,1]` is rejected. A valid save creates a new version, and historical
   results retain their original version.
-- **AC-06:** A non-Manager token never receives family identity fields from an
-  API response or PDF.
+- **AC-06:** API responses, documents, reports, and PDFs enforce the approved
+  least-privilege data scopes. Field Officers never receive names, contact
+  information, National IDs, or identity documents; Donors and Beneficiaries
+  never receive another family's information; Manager, Payout Auditor, and
+  Treasurer identity-data access remains denied until explicitly approved.
 - **AC-07:** A Donor token receives HTTP 403 from case endpoints and cannot
   browse, search, or select cases.
 - **AC-08:** A Treasurer cannot execute before Auditor approval, and no user
@@ -995,6 +1174,15 @@ They are not evidence that the feature is already implemented.
   receipt/impact communication, which contains no family-identifying details.
 - **AC-11:** The monthly PDF is generated automatically and is downloadable
   by an authorized user.
+- **AC-12:** A Beneficiary account and its family are created/linked as one
+  operation; every Beneficiary account owns exactly one family, and the
+  required unique `FAMILY.PrimaryBeneficiaryUserId` prevents a family from
+  having multiple primary Beneficiary accounts or a Beneficiary from owning
+  multiple families.
+- **AC-13:** An authenticated donation has a Donor reference and no guest
+  receipt email; a guest donation has no Donor or category reference, records
+  its guest receipt email, and is treated as general-fund income. Both flows
+  preserve payment confirmation and financial ledger records.
 
 Acceptance tests for these criteria must also cover the privacy, integrity,
 authorization, and cross-module contracts applicable to the feature.
@@ -1022,11 +1210,16 @@ the mathematically plausible expression by assumption.
 
 ### 14.2 Roles, cases, and documents
 
-- The identity-access responsibilities for Manager, Document Reviewer,
-  Field Officer, Beneficiary, and Donor are stated in Sections 4 and 5. The
-  Beneficiary-to-Family relationship and authorization to submit family data
-  remain unresolved and out of scope.
-- Finalize data-access permissions for Payout Auditor and Treasurer.
+- Approve the eligibility rules and recommendation criteria reviewed by
+  Manager, including how the recommendation is represented and preserved with
+  the final decision.
+- Define how Beneficiary ownership is applied when authorizing case access.
+  The approved ERD now links the primary Beneficiary to `FAMILY`; `CASE` remains
+  linked through its family, and `CASE.CreatedByOfficerId` remains staff-
+  oriented. Do not replace these relationships with another ownership mapping.
+- Define the exact minimum case/document/scoring/financial fields visible to
+  Manager, Payout Auditor, and Treasurer; identity-data access for these roles
+  remains denied until explicitly decided.
 - Agree how Module 2's Document Reviewer changes Module 1-owned case status
   and how proof status differs from case status.
 - Approve case correction/resubmission, reopening, survey timing, and all
@@ -1041,8 +1234,10 @@ the mathematically plausible expression by assumption.
 - Approve `T`, point tables, final weights, `lambda`, `D_max`, rounding,
   precision, priority-band boundaries, and tie-breaking.
 - Define behavior for zero income, zero family size, negative post-rent
-  income, missing inputs, and the waiting clock during rejected/correction
-  states.
+  income, missing inputs, and cases resubmitted after correction; the waiting
+  clock begins at successful submission and continues during verification,
+  assessment, corrections, and waiting for funds. Decide how the clock behaves
+  during an account-deactivation pause.
 - Disambiguate the source's use of `D` for disability and waiting days without
   changing the approved formula.
 - Decide whether an active rule-set change recalculates open cases and which
@@ -1071,8 +1266,8 @@ the mathematically plausible expression by assumption.
   refund processing.
 - Define category-specific fund eligibility, allocation cadence, concurrency,
   rollback, overfund handling, and treatment of unallocated balances.
-- Decide whether Manager approval is required for every payout or only above a
-  threshold; define failed, cancelled, and retried payout behavior.
+- Define failed, cancelled, and retried payout behavior. Manager authorization
+  is required for every payout under the approved workflow.
 - Define accounting semantics, amount signs, cash evidence, and the meaning
   of a duplicate payout in the same period.
 

@@ -27,6 +27,7 @@ erDiagram
 
     FAMILY {
         guid Id PK
+        string PrimaryBeneficiaryUserId FK, UK "required, unique; USER.Id (Identity); role must be Beneficiary"
         string HeadFullNameEnc
         string AddressEnc
         string PhoneEnc
@@ -146,13 +147,14 @@ erDiagram
 
     DONATIONCATEGORY {
         guid Id PK
-        string Name UK "General, Education, Health"
+        string Name UK "Education, Health"
         bool IsActive
     }
     DONATION {
         guid Id PK
-        guid DonorId FK
-        guid CategoryId FK
+        guid DonorId FK "nullable; null means guest donation"
+        guid CategoryId FK "nullable; null means general fund"
+        string GuestReceiptEmail "nullable; required when DonorId is null"
         decimal Amount
         decimal FeeAmount
         string Currency
@@ -249,6 +251,15 @@ erDiagram
 
     %% IMPORTANT: USER, ROLE, USERROLE, and all USER foreign keys use string ASP.NET Identity keys.
     %% Business entity primary keys remain guid.
+    %% FAMILY.PrimaryBeneficiaryUserId is a required unique FK to USER.Id (string); USER must have Beneficiary role.
+    %% Each Beneficiary account owns exactly one FAMILY; each FAMILY has exactly one primary Beneficiary account.
+    %% The unique FK gives each USER at most one FAMILY; account creation must atomically establish a FAMILY for every Beneficiary USER.
+    %% FAMILYMEMBER remains family-owned; this relationship does not change FAMILY/FAMILYMEMBER responsibilities.
+    %% DONATION.DonorId is nullable: non-null references an authenticated DONOR; null denotes a guest donation.
+    %% DONATION.CategoryId is nullable: null denotes the general fund; guests must have null CategoryId.
+    %% Guest donations require GuestReceiptEmail; authenticated donations leave GuestReceiptEmail null.
+    %% CategoryId, when non-null, references an approved donation category (Education or Health).
+    %% DONATION constraint: DonorId IS NULL iff guest; guest requires GuestReceiptEmail and CategoryId IS NULL; authenticated donation requires DonorId and GuestReceiptEmail IS NULL.
     %% DONATIONALLOCATION.CaseId is required; NeedId is nullable.
     %% If NeedId is populated, the referenced SPECIFICNEED must belong to the same CASE.
     %% LEDGERENTRY CHECK: exactly one of DonationId, AllocationId, and PayoutId is populated.
@@ -265,6 +276,7 @@ erDiagram
     USER ||--o{ USERROLE : has
     ROLE ||--o{ USERROLE : grants
     USER ||--o| DONOR : "is a"
+    USER ||--o| FAMILY : "primary beneficiary (Beneficiary role only)"
     USER ||--o{ AUDITLOG : performs
     USER ||--o{ NOTIFICATIONOUTBOX : receives
     USER ||--o{ REPORT : generates
@@ -284,8 +296,8 @@ erDiagram
     CASE ||--o{ SPECIFICNEED : requests
     USER ||--o{ SPECIFICNEED : "prices (officer)"
 
-    DONOR ||--o{ DONATION : makes
-    DONATIONCATEGORY ||--o{ DONATION : classifies
+    DONOR o|--o{ DONATION : "authenticated donor (optional for guest)"
+    DONATIONCATEGORY o|--o{ DONATION : "optional; null is general fund"
     DONATION ||--o{ PAYMENTTRANSACTION : "paid via"
     DONATION ||--o{ DONATIONALLOCATION : "split into"
     CASE ||--o{ DONATIONALLOCATION : receives

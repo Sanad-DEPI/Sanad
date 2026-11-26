@@ -15,6 +15,11 @@ Applies to `frontend/`. Also follow the root `AGENTS.md`.
 ## Routing, layouts and auth
 - Routing with React Router; public routes and a protected layout for authenticated routes.
 - Role-based route protection uses roles from the login response. It improves UX only; the backend remains authoritative.
+- Before adding registration, role-aware UI, or beneficiary/financial data,
+  check the approved account types and role boundaries in
+  `../docs/requirements/requirements.md` Sections 4–5. UI visibility does not
+  grant permission; do not expose data or workflows outside the approved role
+  scope, and do not invent controls for unresolved permissions.
 - Unauthenticated access redirects to `/login`; forbidden roles see the access-denied page.
 - Auth state lives in a React context/provider with an in-memory access token (see README for the token-storage decision). The backend exposes refresh/logout endpoints; the frontend does not yet store or rotate refresh tokens.
 

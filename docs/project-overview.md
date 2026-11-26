@@ -31,6 +31,11 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) is a charity managemen
 
 - Security and privacy for sensitive beneficiary data.
 - Server-side authorization and validation; frontend checks are not security.
+- Approved account types, role responsibilities, and data-access boundaries
+  are defined in Sections 4–5 of
+  [`requirements/requirements.md`](requirements/requirements.md). Treat that
+  document as authoritative; do not infer role permissions from the current
+  authentication foundation or ERD.
 - Separation of duties and financial consistency for allocation and payout operations.
 - Auditability and maintainability.
 - Implement only agreed requirements; keep solutions simple.
@@ -51,11 +56,17 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) is a charity managemen
 
 ## Not implemented
 
-Family/case management, document verification workflows, needs assessment and scoring, donations/payments, fund allocation and payouts, notifications/reporting/audit modules, payment gateways, refresh tokens, and microservices.
+Family/case management, document verification workflows, needs assessment and scoring, donations/payments, fund allocation and payouts, notifications/reporting/audit modules, donor email-verification delivery, staff-management endpoints and audit logging, payment gateways, and microservices.
 
 ## Status
 
-The base foundation is implemented and verified locally. Configuration, run instructions, exact verification commands, and the token-storage decision are in `README.md`; the implemented architecture is described in `docs/architecture/foundation.md`.
+The base foundation is implemented and verified locally. Identity seeds the
+eight approved roles and securely provisions the initial SuperAdmin; the
+optional Manager bootstrap is Development-only. Donor email-verification
+delivery and staff-management operations remain deferred. Configuration, run
+instructions, exact verification commands, and the token-storage decision are
+in `README.md`; the implemented architecture is described in
+`docs/architecture/foundation.md`.
 
 The ERD confirms the five-module ownership allocation. Its approved Identity
 key decision, integrity constraints, and remaining design questions are

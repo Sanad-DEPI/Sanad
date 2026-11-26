@@ -13,7 +13,12 @@ other-language requirements or translations without approval.
 
 This README is the entry point for all developers and AI agents. Read
 [`docs/integration/module-contracts.md`](docs/integration/module-contracts.md)
-before implementing or reviewing a business feature.
+before implementing or reviewing a business feature. For any account,
+registration, authorization, beneficiary-data, or financial workflow, also
+read Sections 4–5 of
+[`docs/requirements/requirements.md`](docs/requirements/requirements.md), the
+authoritative source for roles and permission boundaries. Do not infer or
+expand permissions; unresolved access remains denied until approved.
 
 ## What is implemented
 
@@ -71,6 +76,9 @@ The ownership is verified against
 See the [module contracts](docs/integration/module-contracts.md) for the
 complete ERD inventory, shared references, relationship cardinalities,
 Identity decisions, integrity constraints, and remaining design questions.
+The approved ERD links each Beneficiary Identity user to exactly one family
+and represents guest donations without a Donor account or category; these
+documentation decisions are not yet implemented in the application or schema.
 
 ## Module dependencies and shared data
 
@@ -254,7 +262,8 @@ Exact results of the latest run are reported in the final handoff message. Integ
 - `docs/team/README.md` — official Developer 1–5 assignments and coordination
   guide.
 - `docs/decisions/ADR-001-dotnet-10-lts.md` — framework/package decision.
-- `docs/requirements/requirements.md` — requirements skeleton.
+- `docs/requirements/requirements.md` — detailed requirements and authoritative
+  account registration, role, privacy, and workflow decisions.
 - `docs/decisions/ADR-template.md` — template for future decisions.
 
 ## AI agent setup
@@ -266,4 +275,7 @@ Exact results of the latest run are reported in the final handoff message. Integ
 
 ## Scope boundary
 
-Do not add the five business modules, payment gateways, document workflows, notifications, fund allocation, payouts, or microservices without an explicit request and design decision. Authorization, validation, privacy, and auditability remain backend responsibilities for any future module.
+Do not add the five business modules, payment gateways, document workflows, notifications, fund allocation, payouts, or microservices without an explicit request and design decision. Authorization, validation, privacy, and auditability remain backend
+responsibilities for any future module. Before implementation, compare all
+role-specific actions and data fields with the approved requirements; do not
+expand permissions or treat current foundation behavior as the target.
