@@ -32,7 +32,13 @@ The same layering applies to login: `AuthController` → `IAuthService` → `IId
 - `[ApiController]` model validation is remapped to `ApiResponse<object>` with HTTP 400.
 - `ExceptionHandlingMiddleware` maps exceptions to safe responses without exposing stack traces or sensitive data.
 - JWT validation checks issuer, audience, lifetime, and signing key. `AddIdentityCore` is used instead of `AddIdentity` so Identity cookie schemes do not replace JWT as the default scheme.
-- All six roles are seeded on startup. An initial Manager is created only in Development when both seed variables are supplied.
+- The current foundation seeds six legacy roles and may create a development
+  Manager account when both seed variables are supplied. This is an
+  implementation-status fact, not the approved target role model. The
+  requirements document governs target registration and permissions; the
+  initial Super Admin target must be provisioned by secure, idempotent seeding
+  from configuration or secure secrets. This documentation update does not
+  change the current implementation.
 - CORS allows `http://localhost:5173` by default and is configurable via `Cors:AllowedOrigins`.
 
 ## Frontend

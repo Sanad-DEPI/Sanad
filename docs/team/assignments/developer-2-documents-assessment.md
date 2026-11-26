@@ -6,6 +6,14 @@ Own document management and verification, needs assessment, scoring, priority
 calculation, and specific-need records. Detailed scoring formulas, verification
 rules, and acceptance criteria remain pending.
 
+Role boundary: Document Reviewer / Validator verifies National IDs and
+documents, handles corrections, and records partial-assistance suitability or
+why full assistance is required. This role does not make final eligibility
+decisions or authorize allocation/payout. Field Officers assess needs using
+only non-identifying information. Manager makes the final eligibility
+decision; no role silently changes calculated priority. Follow Sections 4–5
+of the requirements and do not infer data access.
+
 ## 2. Entity ownership and ERD relationships
 
 Own exactly:

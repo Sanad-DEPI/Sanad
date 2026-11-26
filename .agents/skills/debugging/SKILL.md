@@ -13,7 +13,7 @@ Find and fix the actual cause of a problem without rewriting unrelated code.
 
 ## Workflow
 1. **Reproduce or understand the issue.** Collect exact steps, expected vs. actual behavior, environment, and error output. If it cannot be reproduced, say so and work from available evidence.
-2. **Inspect relevant code and logs.** Read root `AGENTS.md`, `docs/integration/module-contracts.md`, relevant area `AGENTS.md`, and the code on the failing path. Check configuration, migrations, and recent changes in that area. Verify module ownership before changing shared code and avoid sensitive beneficiary data while investigating.
+2. **Inspect relevant code and logs.** Read root `AGENTS.md`, `docs/integration/module-contracts.md`, relevant area `AGENTS.md`, and the code on the failing path. For registration, authorization, or beneficiary/financial data issues, check Sections 4–5 of `docs/requirements/requirements.md` and verify the exact role boundary. Check configuration, migrations, and recent changes in that area. Verify module ownership before changing shared code and avoid sensitive beneficiary data while investigating.
 3. **Find the root cause.** Trace inputs through API, Application, Domain, Infrastructure, and (for UI) Axios/auth layers. Form a hypothesis and confirm it with evidence. Do not patch the visible symptom and stop.
 4. **Consider side effects.** Identify other flows that depend on the faulty behavior, especially validation, authorization, workflow state, and financial operations. Check existing tests that rely on current behavior.
 5. **Apply the smallest justified fix.** Change only the code responsible for the root cause. Do not reformat, refactor, or rewrite unrelated files. If a broader change is genuinely required, explain and ask first.

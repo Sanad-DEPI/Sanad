@@ -21,7 +21,12 @@ Strict rules: Domain depends on nothing; Application never depends on API or Inf
 - Responses: use `Application/Common/ApiResponse.cs` (`succeeded`, `data`, `message`, `errors`); the `/health` endpoint stays plain.
 - DI: register services in API startup (or extension methods beside it), constructor injection only, no service locator.
 - EF Core: `AppDbContext` lives in Infrastructure; use `IEntityTypeConfiguration<T>` when mapping is needed; add migrations with `dotnet ef migrations add <Name> --project src/SANAD.Infrastructure --startup-project src/SANAD.API` on the feature branch when required; apply them to the developer's local SQL Server, reconcile snapshot conflicts with the project lead, and commit migrations without secrets.
-- Auth: ASP.NET Core Identity + JWT. Role names come only from `SANAD.Domain/Constants/AppRoles.cs`. Protect endpoints with `[Authorize]` / `[Authorize(Roles = ...)]`. Backend authorization is authoritative.
+- Auth: ASP.NET Core Identity + JWT. Reuse `SANAD.Domain/Constants/AppRoles.cs` for roles present in the current foundation. For planned account types and authorization, follow Sections 4–5 of `../docs/requirements/requirements.md`; do not infer target roles or permissions from the current seed, ERD, or role names. Protect endpoints with `[Authorize]` / `[Authorize(Roles = ...)]`. Backend authorization is authoritative.
+- Before changing registration, role assignment, authorization, or access to
+  beneficiary/financial data, map each API action and returned field to the
+  authoritative role matrix in `../docs/requirements/requirements.md`. Deny
+  access that is `UNRESOLVED — REQUIRES DECISION`; do not add permissions
+  because they seem operationally convenient.
 - Logging: `ILogger<T>`. Never log beneficiary data, passwords, tokens, or connection strings.
 - Arabic/Unicode: API DTOs and EF Core text handling must preserve Arabic
   content. Do not assume Latin-only names or fields. User-visible API messages

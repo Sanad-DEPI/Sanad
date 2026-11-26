@@ -7,6 +7,12 @@ append-only audit records. Integrate with events and identifiers from other
 modules without duplicating their entities or inventing delivery, reporting,
 or retention requirements.
 
+Role boundary: notifications, reports, audit views, and exports must preserve
+the same approved least-privilege scope as their source workflow. Do not infer
+identity or financial data access from audit/report ownership. Keep access for
+Manager, Payout Auditor, or Treasurer explicitly unresolved and denied unless
+approved in Sections 4–5 of the requirements.
+
 ## 2. Entity ownership and ERD relationships
 
 Own exactly:

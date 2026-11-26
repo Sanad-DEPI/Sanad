@@ -6,6 +6,13 @@ Own allocation of donations to cases/needs, financial ledger references, payout
 requests and execution, and payout approval steps. Preserve separation of
 duties and financial integrity without inventing unspecified accounting rules.
 
+Role boundary: allocation is distinct from payout and may be automatic only
+under approved rules and safeguards; it never authorizes or executes a payout.
+Every payout follows Manager authorization → Payout Auditor review → Treasurer
+execution, with no user performing multiple approval steps. Do not invent
+Payout Auditor or Treasurer access to beneficiary identity or unrelated modules;
+unresolved access remains denied.
+
 ## 2. Entity ownership and ERD relationships
 
 Own exactly:

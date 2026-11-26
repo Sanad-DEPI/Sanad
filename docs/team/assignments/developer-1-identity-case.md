@@ -7,6 +7,15 @@ creation, case surveys, identity-validation-related case work, lifecycle
 coordination, and immutable status history. Detailed business rules and
 acceptance criteria remain pending in the requirements document.
 
+Role boundary: Beneficiaries register only their own family and track only
+their own cases. Each Beneficiary Identity user owns exactly one family through
+the required unique `FAMILY.PrimaryBeneficiaryUserId` string FK to the existing
+Identity user; each family has exactly one primary Beneficiary. Field Officers
+do not perform family registration and must receive only non-identifying
+assessment information. Only Manager may deactivate/reactivate a family
+account, with a mandatory deactivation reason. Implement no role or data
+permission beyond Sections 4–5 of the requirements.
+
 ## 2. Entity ownership and ERD relationships
 
 Own exactly:
@@ -19,7 +28,9 @@ Own exactly:
 
 Key relationships include family-to-members, family-to-cases, case-to-survey
 (one-to-one), case-to-status-history, and Identity-user references for case
-creation and status review. `CASE` is consumed by Modules 2, 4, and 5.
+creation and status review. `FAMILY.PrimaryBeneficiaryUserId` references the
+existing Identity user ID, not a duplicate user entity. `FAMILYMEMBER` remains
+owned by its family. `CASE` is consumed by Modules 2, 4, and 5.
 `CASESTATUSHISTORY` is immutable historical data. Follow the approved ERD for
 fields, keys, cardinalities, and selective soft deletion.
 

@@ -19,6 +19,13 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) manages family registr
 - Inspect existing code and conventions before modifying anything. Follow them instead of introducing a personally preferred style.
 - Change only files related to the request. Explain modified files and important decisions.
 - Clarify missing requirements. Do not invent business rules or architectural decisions.
+- Before implementing or reviewing any registration, account, case, document,
+  scoring, donation, allocation, payout, report, or notification behavior,
+  consult `docs/requirements/requirements.md` Sections 4–5 for the authoritative
+  account types, role responsibilities, privacy boundaries, and workflows.
+  Check each data field and action against the actor's approved scope; do not
+  infer or expand permissions. Keep any undecided access explicitly marked
+  `UNRESOLVED — REQUIRES DECISION` and deny it until approved.
 - Prefer simple, explicit solutions. Avoid unnecessary abstractions, packages, and files.
 - Verify before claiming success: build and test what you changed, and report exactly what was and was not run.
 - Respect module ownership. Before changing another module or a shared contract, identify the dependency and coordinate with its owner. The five business modules are not implemented yet; do not add them without an explicit request.
@@ -34,6 +41,9 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) manages family registr
 - Treat beneficiary data as sensitive: minimize exposure in logs, responses, and commits.
 - Enforce authorization and validation on the backend; never trust frontend checks.
 - Preserve separation of duties and financial consistency. Do not bypass approval or audit flows.
+- Apply least privilege to every role, API response, document, report, export,
+  notification, and log. Role names, module ownership, and frontend route
+  guards do not grant data access.
 - Never commit secrets, credentials, tokens, or local configuration.
 
 ## Collaboration
