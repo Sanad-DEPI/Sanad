@@ -16,7 +16,7 @@ Applies to `frontend/`. Also follow the root `AGENTS.md`.
 - Routing with React Router; public routes and a protected layout for authenticated routes.
 - Role-based route protection uses roles from the login response. It improves UX only; the backend remains authoritative.
 - Unauthenticated access redirects to `/login`; forbidden roles see the access-denied page.
-- Auth state lives in a React context/provider with an in-memory access token (see README for the token-storage decision). No refresh-token flow exists yet.
+- Auth state lives in a React context/provider with an in-memory access token (see README for the token-storage decision). The backend exposes refresh/logout endpoints; the frontend does not yet store or rotate refresh tokens.
 
 ## API and state
 - All backend calls go through the Axios instance in `src/services`. Configure base URL from `VITE_API_URL` and attach the token via an interceptor.

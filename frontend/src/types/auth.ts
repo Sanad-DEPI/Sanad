@@ -1,6 +1,8 @@
 export interface LoginResponse {
   token: string
   expiresAtUtc: string
+  refreshToken: string
+  refreshTokenExpiresAtUtc: string
   email: string
   roles: string[]
 }

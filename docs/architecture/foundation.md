@@ -32,7 +32,10 @@ The same layering applies to login: `AuthController` → `IAuthService` → `IId
 - `[ApiController]` model validation is remapped to `ApiResponse<object>` with HTTP 400.
 - `ExceptionHandlingMiddleware` maps exceptions to safe responses without exposing stack traces or sensitive data.
 - JWT validation checks issuer, audience, lifetime, and signing key. `AddIdentityCore` is used instead of `AddIdentity` so Identity cookie schemes do not replace JWT as the default scheme.
-- All six roles are seeded on startup. An initial Manager is created only in Development when both seed variables are supplied.
+- All eight recognized roles are seeded on startup. An initial SuperAdmin is provisioned in every environment from secure configuration; an optional Manager is created only in Development.
+- SuperAdmin credentials must be supplied through .NET User Secrets during development or environment variables/a secure secret manager in deployment. Configure `Seed:SuperAdminEmail` and `Seed:SuperAdminPassword`; never commit credential values. The optional Development Manager uses `Seed:ManagerEmail` and `Seed:ManagerPassword`.
+- Login failures are counted by Identity and lock accounts after five failures. Login, registration, and refresh endpoints share a per-IP rate limit. Access tokens expire after 15 minutes; refresh tokens rotate and are stored as hashes in the existing `AspNetUserTokens` table.
+- Public registration assigns only Donor or Beneficiary. Donor sign-in remains blocked until an approved email verification/delivery integration exists. Beneficiary registration does not create or approve a family/case.
 - CORS allows `http://localhost:5173` by default and is configurable via `Cors:AllowedOrigins`.
 
 ## Frontend
@@ -97,4 +100,7 @@ combined migration sequence before it reaches the shared development database.
 
 ## Deliberate omissions
 
-No business-module entities, migrations, endpoints, or UI are included. There is no refresh-token flow, public registration, payment integration, or microservice boundary in the foundation.
+No business-module entities, migrations, endpoints, or UI are included.
+Identity refresh-token rotation and public account registration exist in the
+foundation; donor email-verification delivery and staff-management operations
+remain deferred. There is no payment integration or microservice boundary.

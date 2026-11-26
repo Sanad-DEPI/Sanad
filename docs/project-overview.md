@@ -38,8 +38,8 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) is a charity managemen
 ## Implemented foundation
 
 - Backend solution with Domain, Application, Infrastructure, API, UnitTests, and IntegrationTests projects.
-- Identity + JWT authentication, six seeded roles, optional development-only initial Manager account.
-- `/health`, `/api/auth/login`, `/api/me`, `/api/test/authenticated`, and Manager-only `/api/test/manager`.
+- Identity + JWT authentication, eight seeded roles, required initial SuperAdmin account, and optional development-only Manager account.
+- `/health`, login/registration/refresh/logout endpoints, `/api/me`, and role-protected authorization test endpoints.
 - EF Core SQL Server configuration and initial Identity migration.
 - Consistent API response envelope, validation mapping, exception handling, CORS, Swagger, and health checks.
 - React frontend with login, protected routes, role guard, dashboard, Manager page, logout, access-denied state, and API error handling.

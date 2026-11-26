@@ -14,7 +14,17 @@ namespace SANAD.IntegrationTests;
 /// </summary>
 public sealed class SanadWebApplicationFactory : WebApplicationFactory<Program>
 {
+    private readonly int _loginPermitLimit;
     private readonly string _databaseName = $"SANAD_Tests_{Guid.NewGuid():N}";
+
+    public SanadWebApplicationFactory() : this(100)
+    {
+    }
+
+    internal SanadWebApplicationFactory(int loginPermitLimit)
+    {
+        _loginPermitLimit = loginPermitLimit;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -25,7 +35,10 @@ public sealed class SanadWebApplicationFactory : WebApplicationFactory<Program>
         builder.UseSetting("Jwt:Secret", "integration-tests-secret-with-at-least-32-characters");
         builder.UseSetting("Jwt:Issuer", "SANAD.Tests");
         builder.UseSetting("Jwt:Audience", "SANAD.Tests.Client");
-        builder.UseSetting("Jwt:ExpiryMinutes", "60");
+        builder.UseSetting("Jwt:ExpiryMinutes", "15");
+        builder.UseSetting("Seed:SuperAdminEmail", "initial-superadmin@example.test");
+        builder.UseSetting("Seed:SuperAdminPassword", "Test@12345");
+        builder.UseSetting("RateLimiting:Login:PermitLimit", _loginPermitLimit.ToString());
 
         builder.ConfigureTestServices(services =>
         {

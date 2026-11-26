@@ -31,18 +31,42 @@ public sealed class ProtectedEndpointTests(SanadWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task ManagerEndpoint_WithDonorToken_ReturnsForbidden()
+    public async Task StaffAdministrationEndpoint_WithDonorToken_ReturnsForbidden()
     {
         var (email, password) = await CreateUserAsync(AppRoles.Donor);
         var token = await LoginAsync(email, password);
 
-        var response = await Client.SendAsync(GetWithToken("/api/test/manager", token));
+        var response = await Client.SendAsync(GetWithToken("/api/test/staff-administration", token));
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
-    public async Task ManagerEndpoint_WithManagerToken_ReturnsOk()
+    public async Task StaffAdministrationEndpoint_WithManagerToken_ReturnsForbidden()
+    {
+        var (email, password) = await CreateUserAsync(AppRoles.Manager);
+        var token = await LoginAsync(email, password);
+
+        var response = await Client.SendAsync(GetWithToken("/api/test/staff-administration", token));
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task StaffAdministrationEndpoint_WithSuperAdminToken_ReturnsOk()
+    {
+        var (email, password) = await CreateUserAsync(AppRoles.SuperAdmin);
+        var token = await LoginAsync(email, password);
+
+        var response = await Client.SendAsync(GetWithToken("/api/test/staff-administration", token));
+        var body = await ReadApiAsync<string>(response);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.True(body.Succeeded);
+        Assert.Equal("Staff administration access granted.", body.Data);
+    }
+
+    [Fact]
+    public async Task ManagerTestEndpoint_RemainsManagerOnly()
     {
         var (email, password) = await CreateUserAsync(AppRoles.Manager);
         var token = await LoginAsync(email, password);
@@ -51,7 +75,6 @@ public sealed class ProtectedEndpointTests(SanadWebApplicationFactory factory)
         var body = await ReadApiAsync<string>(response);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.True(body.Succeeded);
         Assert.Equal("Manager access granted.", body.Data);
     }
 }

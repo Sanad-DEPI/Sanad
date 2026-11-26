@@ -9,16 +9,25 @@ public sealed class AppRolesTests
     {
         var expected = new[]
         {
+            AppRoles.Beneficiary,
+            AppRoles.Donor,
+            AppRoles.SuperAdmin,
             AppRoles.Manager,
-            AppRoles.PayoutAuditor,
-            AppRoles.Treasurer,
             AppRoles.DocumentReviewer,
             AppRoles.FieldOfficer,
-            AppRoles.Donor
+            AppRoles.PayoutAuditor,
+            AppRoles.Treasurer
         };
 
         Assert.Equal(expected.Length, AppRoles.All.Length);
         Assert.All(expected, role => Assert.Contains(role, AppRoles.All));
         Assert.Equal(AppRoles.All.Length, AppRoles.All.Distinct().Count());
+    }
+
+    [Fact]
+    public void PublicRegistration_ContainsOnlyDonorAndBeneficiary()
+    {
+        Assert.Equal([AppRoles.Beneficiary, AppRoles.Donor], AppRoles.PublicRegistration);
+        Assert.All(AppRoles.PublicRegistration, role => Assert.Contains(role, AppRoles.All));
     }
 }

@@ -32,7 +32,10 @@ public abstract class IntegrationTestBase : IClassFixture<SanadWebApplicationFac
         {
             if (!await roleManager.RoleExistsAsync(role))
             {
-                await roleManager.CreateAsync(new IdentityRole(role));
+                var roleCreated = await roleManager.CreateAsync(new IdentityRole(role));
+                Assert.True(
+                    roleCreated.Succeeded,
+                    string.Join("; ", roleCreated.Errors.Select(error => error.Code)));
             }
         }
 
@@ -49,7 +52,8 @@ public abstract class IntegrationTestBase : IClassFixture<SanadWebApplicationFac
 
         foreach (var role in roles.Distinct())
         {
-            await users.AddToRoleAsync(user, role);
+            var assigned = await users.AddToRoleAsync(user, role);
+            Assert.True(assigned.Succeeded, string.Join("; ", assigned.Errors.Select(error => error.Code)));
         }
 
         return (email, TestPassword);

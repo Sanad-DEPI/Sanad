@@ -146,7 +146,7 @@ this conflict remains.
 | Term | Meaning |
 | --- | --- |
 | Case | A family's aid request, identified in operational workflows by an anonymous Case ID. |
-| Main Admin | The Manager role. The original specification designates this as the only role permitted to view family identity. |
+| Main Admin | The SuperAdmin role for staff administration. This role has no automatic access to beneficiary identity or business data. |
 | RBAC | Role-based access control. |
 | IPC | Income per capita after rent; its exact formula is unresolved in Section 5.4. |
 | Payout | A proposed or confirmed release of funds for a case, subject to the approval workflow. |
@@ -157,52 +157,69 @@ this conflict remains.
 
 ## 4. User roles, permissions, and privacy
 
-The system has exactly six application roles. The canonical role names are
-`Manager`, `PayoutAuditor`, `Treasurer`, `DocumentReviewer`, `FieldOfficer`,
-and `Donor`.
+The system has exactly eight application roles. `Beneficiary` and `Donor` are
+public roles; `SuperAdmin`, `Manager`, `DocumentReviewer`, `FieldOfficer`,
+`PayoutAuditor`, and `Treasurer` are staff/administration roles. Guest donors
+do not need an account or application role.
 
-| Capability / data view | Manager | Payout Auditor | Treasurer | Document Reviewer | Field Officer | Donor |
-| --- | --- | --- | --- | --- | --- | --- |
-| View family identity (name, National ID, address, phone) | Yes; access is logged | No | No | No | No viewing under the original privacy rule; conflict with data-entry duties is unresolved | No |
-| View anonymized case information | Yes | Case ID, verified evidence, score breakdown, and payout amount | Case ID and amount to release only | Anonymous Case ID and evidence needed for review only | Need description and assigned work only | No case information |
-| Manage users and scoring rules | Yes | No | No | No | No | No |
-| Enter family data / price needs | No, except administration is unresolved | No | No | No | Yes, subject to the identity-access decision below | No |
-| Verify or reject case proofs | No | No | No | Yes | No | No |
-| Authorize payout | Yes | No | No | No | No | No |
-| Audit payout file | No | Yes | No | No | No | No |
-| Execute payout | No | No | Yes, after audit approval | No | No | No |
-| Donate | No | No | No | No | No | Yes |
-| Generate reports | All reports | Payout approval trail | Financial report | No | No | Own donation receipts only |
+| Capability / data view | SuperAdmin | Manager | Payout Auditor | Treasurer | Document Reviewer | Field Officer | Beneficiary | Donor |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Manage staff accounts and staff roles | Yes | No | No | No | No | No | No | No |
+| View family identity (name, National ID, address, phone) | No automatic access | Unresolved; denied | Unresolved; denied | Unresolved; denied | Only as necessary for identity validation and document review | No | Own account only; family workflow not implemented | No |
+| View case information | No automatic access | Unresolved; denied | Unresolved; denied | Unresolved; denied | Only as necessary for review | Needs and valuation information only; no identity or identity documents | No case access until approved workflow exists | No case information |
+| Assess conditions and value needs | No | Unresolved | Unresolved | Unresolved | No | Yes, without identity data | No | No |
+| Verify identity and review identity documents | No | Unresolved; denied | Unresolved; denied | Unresolved; denied | Yes, only as necessary for identity validation and submitted-document review | No | No | No |
+| Authorize payout | No automatic access | Unresolved | No | No | No | No | No | No |
+| Audit payout file | No | No | Yes, duties only; data fields unresolved | No | No | No | No | No |
+| Execute payout | No | No | No | Yes, duties only; data fields unresolved | No | No | No | No |
+| Donate | No | No | No | No | No | No | No | Yes; guests may donate without an account |
+| Generate reports | No automatic access | Unresolved | Unresolved | Unresolved | No | No | No | Own donation receipts only |
 
 ### 4.1 Authorization and privacy requirements
 
-- **FR-ROLE-1:** The system shall support exactly the six roles listed above.
+- **FR-ROLE-1:** The system shall support exactly the eight roles listed above.
 - **FR-ROLE-2:** Each protected API operation shall enforce the required role
   or policy on the server. Unauthorized access shall not be granted; requests
   from authenticated users without permission shall return HTTP 403.
-- **FR-ROLE-3:** Family identity fields shall only be returned to the Manager.
-  Non-Manager response DTOs and reports shall omit those fields server-side.
-- **FR-ROLE-4:** Treasurer views shall show only the Case ID and amount to
-  release for payout execution.
-- **FR-ROLE-5:** Field Officer views shall expose only approved need details
-  for valuation work; donor views shall expose no case information.
-- **FR-ROLE-6:** Manager access to family identity data shall be audit-logged.
+- **FR-ROLE-3:** SuperAdmin may manage staff accounts and staff roles, but
+  receives no automatic access to beneficiary cases, identity documents,
+  donations, allocations, or payouts.
+- **FR-ROLE-4:** Manager, Payout Auditor, and Treasurer shall not receive
+  unresolved identity-data or business-data permissions. Access remains denied
+  until the authorization matrix is approved.
+- **FR-ROLE-5:** Field Officers shall assess financial/living conditions and
+  value needs without accessing beneficiary identity, National IDs, or
+  identity documents. Donors shall not see case information.
+- **FR-ROLE-6:** Any future staff role-assignment changes shall be audit-logged.
 - **FR-ROLE-7:** Role-assignment changes shall be audit-logged and take effect
   on the next token refresh, subject to the approved token lifecycle.
-- **FR-ROLE-8:** Payout Auditor access shall be limited to the Case ID,
-  verified documents, score breakdown, and payout amount, without identity
-  data.
-- **FR-ROLE-9:** Each role shall receive only the information needed for its
+- **FR-ROLE-8:** The Document Reviewer may access identity information and
+  identity documents only as necessary for identity validation and review.
+- **FR-ROLE-9:** The Payout Auditor and Treasurer may perform their respective
+  payout duties, but their accessible data fields remain unresolved and denied.
+- **FR-ROLE-10:** Each role shall receive only the information needed for its
   decision. Documents are evidence; they do not grant access to the identity
-  profile. The donor shall never be able to browse, search, or select cases.
-- **FR-ROLE-10:** No user may perform more than one approval step for the same
+  profile. Donors shall never browse, search, or select cases.
+- **FR-ROLE-11:** No user may perform more than one approval step for the same
   payout. A Manager may not execute a transfer.
+- **FR-ROLE-12:** Public registration shall assign only one of `Donor` or
+  `Beneficiary`. It shall not accept arbitrary role names or create staff
+  accounts. Users cannot change their own account type; an authorized
+  administrative process is required.
 
-**UNRESOLVED — REQUIRES DECISION:** the original specification says the Field
-Officer enters family data but also says only the Manager may view family
-identity. Define how data entry is performed without granting disallowed
-identity access, or explicitly revise the permission rule. Do not infer the
-answer from the current UI or role names.
+The family is responsible for entering and submitting its own registration
+information. The Field Officer assesses financial and living conditions,
+evaluates needs, and provides valuations without access to family identity,
+National IDs, or identity documents.
+
+Beneficiary registration does not approve a family for assistance. Family
+ownership, registration, and case workflows remain out of scope for the
+authentication foundation. Guest donations do not require registration or a
+Donor role.
+
+**UNRESOLVED — REQUIRES DECISION:** finalize Manager, Payout Auditor, and
+Treasurer data-access permissions and the staff account-management API/audit
+contract before implementing those operations.
 
 **UNRESOLVED — REQUIRES DECISION:** the permission matrix does not define every
 read, update, correction, export, and deletion permission. Approve a complete
@@ -224,10 +241,21 @@ unresolved. Their presence does not indicate that they have been implemented.
   Accounts shall be locked after five failed login attempts.
 - **FR-AUTH-3:** Donors shall verify their email address during registration.
   Phone verification by OTP is optional in the original specification.
-- **FR-AUTH-4:** Staff accounts (Manager, Treasurer, Document Reviewer, and
-  Field Officer) shall be created only by the Manager/Main Admin.
+- **FR-AUTH-4:** Staff accounts shall be created and managed only through an
+  authorized administrative process; the approved role for staff
+  administration is SuperAdmin.
 - **FR-AUTH-5:** Authentication, login, and OTP endpoints shall be protected
   against repeated attempts as specified by NFR-1.
+- **FR-AUTH-6:** Public registration shall accept only `Donor` or
+  `Beneficiary`; registration shall not create a family record or approve
+  eligibility for assistance.
+- **FR-AUTH-7:** A public account shall have no more than one public role.
+  Public users cannot change their own account type. Guest donations do not
+  require an account.
+
+Donor email delivery/verification is not implemented in the foundation. Donor
+accounts remain unable to sign in until an approved email-delivery and
+verification workflow is added.
 
 ASP.NET Core Identity is the source of truth for users, roles, and
 authentication. These requirements do not authorize a second authentication
@@ -236,23 +264,28 @@ system or duplicate `USER`, `ROLE`, or `USERROLE` tables.
 #### Egyptian National ID
 
 - **FR-ID-1:** The system shall validate that an Egyptian National ID contains
-  14 digits and passes an approved structural validation.
+  exactly 14 digits and validate its format.
 - **FR-ID-2:** Validation shall extract the century, birth date, governorate
-  code, and gender from a valid ID. The source specifies odd gender digit =
-  male and even gender digit = female.
+  code, and gender from the encoded information according to the officially
+  applicable Egyptian National ID structure, where applicable. The original
+  specification states odd gender digit = male and even gender digit = female.
 - **FR-ID-3:** The system shall calculate age from the extracted birth date.
 - **FR-ID-4:** A National ID shall be unique across all families. A person
   shall not be registered in two families, including in different household
-  roles. A duplicate shall be rejected with a clear error.
+  roles. A duplicate shall be rejected. Identity verification shall be
+  performed by the Document Reviewer.
 
 **UNRESOLVED — REQUIRES DECISION:** the exact structure/check-digit rules,
 valid century and date ranges, governorate-code list, and behavior for invalid
-or future birth dates are not specified.
+or future birth dates are not specified. Confirm these rules before implementing
+the structural National ID parser.
 
 ### 5.2 Family registration and case management
 
-- **FR-CASE-1:** Authorized staff shall be able to register a family and its
-  members, subject to the National ID validation and privacy requirements.
+- **FR-CASE-1:** A family shall enter and submit its own registration
+  information through the platform, subject to National ID validation and
+  privacy requirements. The Field Officer shall assess financial and living
+  conditions and value needs without access to family identity data.
 - **FR-CASE-2:** A case shall be associated with its family through an
   internal identifier and shall use an anonymous Case ID in operational
   workflows.
@@ -653,11 +686,20 @@ ERD.
   defined by ASP.NET Core Identity. The project shall not create a duplicate
   `USERROLE` table or replace Identity's schema.
 - **DR-3:** Family identity data shall be stored separately from case workflow
-  data and linked only by an internal identifier. Non-Manager case queries
-  shall not expose the identity profile.
-- **DR-4:** National ID and contact data shall be encrypted at rest. The
-  approved ERD identifies encrypted fields and a unique `NationalIdHash` for
-  duplicate detection.
+  data and linked only by an internal identifier. Manager access is for
+  management purposes; Document Reviewer access is limited to identity
+  validation and necessary document review. Field Officers and Donors shall not
+  access family identity.
+- **DR-4:** National IDs shall be encrypted at rest using AES-256-GCM.
+  Duplicate detection shall use HMAC-SHA-256 with a dedicated secret key
+  separate from the encryption key. Store the ciphertext and HMAC hash, and
+  enforce a unique database index on `NationalIdHash`. Keys shall be supplied
+  through .NET User Secrets or environment variables during development and a
+  secure secret-management service in production. Keys shall never be
+  committed to Git, stored in the database, exposed to the frontend, or logged.
+  Decryption shall occur only in the backend after authorization. Encryption
+  keys shall support rotation; HMAC-key rotation shall regenerate hashes for
+  existing records.
 - **DR-5:** Monetary values shall use decimal precision equivalent to
   `decimal(18,2)`. EGP is the currency in the original specification; the
   final currency policy remains unresolved.
@@ -712,9 +754,10 @@ ERD.
   physically deleted through normal operations. No cascade physical deletion
   shall erase related history.
 
-**UNRESOLVED — REQUIRES DECISION:** choose the encryption and key-management
-approach, National ID normalization/hash construction and rotation policy,
-retention/erasure rules, and the handling of a deleted member's unique hash.
+**UNRESOLVED — REQUIRES DECISION:** define National ID canonicalization before
+HMAC calculation, key identifiers and rotation procedures, retention/erasure
+rules, and handling of a deleted member's unique hash. National ID structural
+validation details remain unresolved under FR-ID-2.
 
 **UNRESOLVED — REQUIRES DECISION:** the ERD requires `AUDITLOG.UserId`, while
 the module contract notes that system-generated audit events may have no user
@@ -979,8 +1022,11 @@ the mathematically plausible expression by assumption.
 
 ### 14.2 Roles, cases, and documents
 
-- Resolve the Manager-only identity rule against the Field Officer's data-entry
-  responsibility.
+- The identity-access responsibilities for Manager, Document Reviewer,
+  Field Officer, Beneficiary, and Donor are stated in Sections 4 and 5. The
+  Beneficiary-to-Family relationship and authorization to submit family data
+  remain unresolved and out of scope.
+- Finalize data-access permissions for Payout Auditor and Treasurer.
 - Agree how Module 2's Document Reviewer changes Module 1-owned case status
   and how proof status differs from case status.
 - Approve case correction/resubmission, reopening, survey timing, and all
@@ -1006,8 +1052,11 @@ the mathematically plausible expression by assumption.
 
 - Confirm English support from the original specification against the
   repository decision that English is unresolved.
-- Approve National ID structure, governorate codes, date validation, hash
-  construction, encryption/key management, and key rotation.
+- Confirm National ID structure, governorate codes, date validation, and any
+  check-digit algorithm before implementing the parser. AES-256-GCM encryption
+  and HMAC-SHA-256 duplicate detection with a separate key are approved;
+  canonicalization and operational key-rotation procedures remain to be
+  finalized.
 - Define personal-data retention, erasure, soft-deleted record access, document
   retention, and audit-value redaction.
 - Resolve whether system-generated audit events may have null `AUDITLOG.UserId`.

@@ -1,5 +1,5 @@
-// Access tokens are kept in memory only. There is no refresh-token flow yet,
-// so a page reload returns the user to /login.
+// The backend supports refresh-token rotation, but this client does not yet
+// store or use refresh tokens, so a page reload returns the user to /login.
 let accessToken: string | null = null
 
 export function getAccessToken(): string | null {

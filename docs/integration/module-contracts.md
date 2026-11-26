@@ -40,7 +40,7 @@ relationship as required.
 | Entity | Primary key | Foreign keys | Other attributes and constraints |
 | --- | --- | --- | --- |
 | `USER` | `Id` (`string`, Identity) | — | `Email` (`string`, unique), `PhoneNumber`, `FullName`, `IsActive`, `CreatedAt` |
-| `ROLE` | `Id` (`string`, Identity) | — | `Name` (`string`, unique; six listed role names) |
+| `ROLE` | `Id` (`string`, Identity) | — | `Name` (`string`, unique; eight recognized application role names) |
 | `USERROLE` | `UserId` + `RoleId` (`string`) | `UserId` → `USER`, `RoleId` → `ROLE` | Composite PK |
 | `DONOR` | `Id` (`guid`) | `UserId` → `USER` (`string`, unique), `DeletedById` → `USER` (`string`, nullable) | `PreferredChannel`, `OptOutNonEssential`, `IsDeleted`, `DeletedAt` (nullable) |
 | `FAMILY` | `Id` (`guid`) | `DeletedById` → `USER` (`string`, nullable) | `HeadFullNameEnc`, `AddressEnc`, `PhoneEnc`, `Governorate`, `CreatedAt`, `IsDeleted`, `DeletedAt` (nullable) |
@@ -63,8 +63,9 @@ relationship as required.
 | `REPORT` | `Id` (`guid`) | `GeneratedById` → `USER` (`string`), `DeletedById` → `USER` (`string`, nullable) | `ReportType`, `PeriodStart`, `PeriodEnd`, `FilePath`, `FileHash`, `CreatedAt`, `IsDeleted`, `DeletedAt` (nullable) |
 | `AUDITLOG` | `Id` (`guid`) | `UserId` → `USER` (`string`) | `Action`, `EntityName`, `EntityId`, `OldValue`, `NewValue`, `At`; append-only immutable record |
 
-The ERD's six role names are `Manager`, `PayoutAuditor`, `Treasurer`,
-`DocumentReviewer`, `FieldOfficer`, and `Donor`, matching
+The approved identity foundation recognizes exactly eight application roles:
+`Beneficiary`, `Donor`, `SuperAdmin`, `Manager`, `DocumentReviewer`,
+`FieldOfficer`, `PayoutAuditor`, and `Treasurer`, matching
 [`AppRoles.cs`](../../backend/src/SANAD.Domain/Constants/AppRoles.cs).
 
 ## Identity ownership
@@ -103,7 +104,7 @@ The remaining conceptual differences from the current implementation are:
 - ERD `USER.Email` is unique; ASP.NET Core Identity currently enforces unique
   emails through `RequireUniqueEmail`, but the physical Identity schema also
   contains the standard username, claim, login, token, and concurrency columns.
-- ERD `ROLE.Name` lists the six application roles; the current implementation
+- ERD `ROLE.Name` lists the eight recognized application roles; the current implementation
   seeds those names through `AppRoles`, while Identity also owns role claims.
 - The ERD models only `USER`, `ROLE`, and `USERROLE`; the current Identity
   migration additionally contains `AspNetRoleClaims`, `AspNetUserClaims`,

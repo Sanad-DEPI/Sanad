@@ -19,8 +19,8 @@ before implementing or reviewing a business feature.
 
 ### Backend
 - .NET 10 (LTS) ASP.NET Core Web API in a Clean Architecture solution.
-- ASP.NET Core Identity with the six agreed roles, SQL Server/EF Core, and JWT bearer authentication.
-- `POST /api/auth/login`, protected `GET /api/me`, `GET /api/test/authenticated`, and Manager-only `GET /api/test/manager`.
+- ASP.NET Core Identity with eight recognized roles, SQL Server/EF Core, 15-minute JWT bearer tokens, refresh-token rotation, lockout, and rate-limited authentication endpoints.
+- `POST /api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/logout`, protected `GET /api/me`, and role-protected authorization test endpoints.
 - Consistent `ApiResponse<T>` envelope, global model-validation mapping, exception middleware, CORS, Swagger with JWT support, health check, and structured logging.
 - EF Core migration `InitialIdentity` for Identity tables and role seed data.
 - xUnit unit and integration tests for health, login, validation, authorization, and the reference `/api/me` feature.
@@ -148,14 +148,33 @@ The API intentionally has no JWT secret in source control and fails fast if `Jwt
 $env:Jwt__Secret = 'replace-with-a-random-secret-at-least-32-characters-long'
 $env:ConnectionStrings__Default = 'Server=localhost;Database=SANAD;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true'
 
-# Optional, Development only: creates the initial Manager on startup.
+# Required in all environments: provision the initial SuperAdmin.
+$env:Seed__SuperAdminEmail = 'admin@example.test'
+$env:Seed__SuperAdminPassword = 'REPLACE_WITH_A_SECURE_PASSWORD_123'
+
+# Optional, Development only: creates an initial Manager on startup.
 $env:Seed__ManagerEmail = 'manager@example.test'
 $env:Seed__ManagerPassword = 'REPLACE_WITH_LOCAL_DEV_PASSWORD_123'
 ```
 
-Replace the placeholder secret and password with local values; the shown strings are examples only.
+Use .NET User Secrets in development or environment variables/a secure secret
+manager in deployment; do not commit real credentials. The shown values are
+placeholders only.
 
-All six roles are seeded on startup. Without `Seed__ManagerEmail` and `Seed__ManagerPassword`, no user is created; there is deliberately no public registration endpoint in the foundation.
+For development, store secrets with .NET User Secrets instead of shell history
+or committed files:
+
+```powershell
+dotnet user-secrets set "Jwt:Secret" "<random-secret-at-least-32-bytes>" --project backend/src/SANAD.API
+dotnet user-secrets set "Seed:SuperAdminEmail" "<initial-admin-email>" --project backend/src/SANAD.API
+dotnet user-secrets set "Seed:SuperAdminPassword" "<unique-password>" --project backend/src/SANAD.API
+```
+
+All eight recognized roles are seeded on startup. A SuperAdmin account is
+required and is created only when the configured email does not already exist;
+seeding never resets an existing password. The optional Manager seed is
+Development-only. Public registration accepts only Donor or Beneficiary; Donor
+sign-in stays blocked until email verification delivery is implemented.
 
 Apply the Identity migration before first run:
 
@@ -189,21 +208,30 @@ npm install
 npm run dev
 ```
 
-Sign in with the seeded Manager account to see the dashboard and the Manager-only page. Other roles see the dashboard but are redirected to `/access-denied` for the Manager route.
+Sign in with an account configured for the frontend. The frontend Manager
+screen remains a role-gated smoke-test page, not a staff-management feature.
 
 ## API surface
 
 | Method | Path | Access | Purpose |
 | --- | --- | --- | --- |
 | `GET` | `/health` | Anonymous | Liveness check (plain response, not `ApiResponse<T>`) |
-| `POST` | `/api/auth/login` | Anonymous | Returns a JWT and the user's roles |
+| `POST` | `/api/auth/login` | Anonymous, rate-limited | Returns a 15-minute JWT, refresh token, and user's roles |
+| `POST` | `/api/auth/register` | Anonymous, rate-limited | Creates a Donor or Beneficiary account only |
+| `POST` | `/api/auth/refresh` | Anonymous, rate-limited | Rotates a one-time refresh token |
+| `POST` | `/api/auth/logout` | Anonymous, rate-limited | Revokes the supplied refresh token |
 | `GET` | `/api/me` | Authenticated | Reference feature: current user profile |
 | `GET` | `/api/test/authenticated` | Authenticated | Confirms JWT authentication |
-| `GET` | `/api/test/manager` | Manager | Confirms role authorization |
+| `GET` | `/api/test/manager` | Manager | Confirms Manager-role authorization |
+| `GET` | `/api/test/staff-administration` | SuperAdmin | Confirms staff-administration policy authorization |
 
 ## Token storage decision
 
-The access token is stored only in React memory, not `localStorage` or `sessionStorage`. A page reload returns the user to `/login`; there is no refresh-token flow yet. Frontend route guards improve UX only — every protected API call is authorized by the backend. A `401` response clears auth state and redirects the user to login.
+The API now issues and rotates refresh tokens. The React client still stores
+only the access token in memory and does not yet call the refresh or logout
+endpoints; a page reload returns the user to `/login`. Frontend route guards
+improve UX only — every protected API call is authorized by the backend. A
+`401` response clears auth state and redirects the user to login.
 
 ## Verification commands
 
