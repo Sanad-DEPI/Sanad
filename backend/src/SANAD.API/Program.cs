@@ -156,6 +156,7 @@ builder.Services.AddScoped<IIdentityService, IdentityService>();
 builder.Services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IRefreshTokenStore, IdentityRefreshTokenStore>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddHostedService<ExpiredRefreshTokenCleanupService>();
 builder.Services.AddScoped<ICurrentUserReader, CurrentUserReader>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 

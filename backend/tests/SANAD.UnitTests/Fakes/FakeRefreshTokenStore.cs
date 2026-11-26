@@ -32,4 +32,7 @@ internal sealed class FakeRefreshTokenStore(
         CapturedRefreshToken = refreshToken;
         return Task.CompletedTask;
     }
+
+    public Task<int> DeleteExpiredAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(0);
 }

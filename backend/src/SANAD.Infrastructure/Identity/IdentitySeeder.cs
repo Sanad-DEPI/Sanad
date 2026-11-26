@@ -79,6 +79,7 @@ public static class IdentitySeeder
         ILogger logger)
     {
         var user = await userManager.FindByEmailAsync(email);
+        var accountCreated = false;
         if (user is null)
         {
             user = new ApplicationUser
@@ -91,13 +92,11 @@ public static class IdentitySeeder
             var created = await userManager.CreateAsync(user, password);
             if (!created.Succeeded)
             {
-                user = await userManager.FindByEmailAsync(email);
-                if (user is null)
-                {
-                    LogIdentityFailure(logger, $"{accountName} provisioning failed", created);
-                    throw new InvalidOperationException($"Initial {accountName} account could not be provisioned.");
-                }
+                LogIdentityFailure(logger, $"{accountName} provisioning failed", created);
+                throw new InvalidOperationException($"Initial {accountName} account could not be provisioned.");
             }
+
+            accountCreated = true;
         }
 
         var existingRoles = await userManager.GetRolesAsync(user);
@@ -121,6 +120,15 @@ public static class IdentitySeeder
                 "Initial {AccountName} account has incompatible assigned roles. Provisioning was stopped.",
                 accountName);
             throw new InvalidOperationException($"Initial {accountName} account has incompatible roles.");
+        }
+
+        if (!accountCreated)
+        {
+            logger.LogError(
+                "Configured initial {AccountName} account exists without roles. Manual verification is required before assigning a role.",
+                accountName);
+            throw new InvalidOperationException(
+                $"Existing account configured as the initial {accountName} has no roles. Manually verify the account before assigning '{role}'.");
         }
 
         var assigned = await userManager.AddToRoleAsync(user, role);

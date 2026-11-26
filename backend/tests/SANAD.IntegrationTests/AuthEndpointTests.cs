@@ -281,6 +281,61 @@ public sealed class AuthEndpointTests(SanadWebApplicationFactory factory)
     }
 
     [Fact]
+    public async Task RefreshCleanup_DeletesExpiredTokensAndPreservesActiveAndOtherIdentityTokens()
+    {
+        var (email, _) = await CreateUserAsync(AppRoles.Beneficiary);
+        const string expiredToken = "expired-cleanup-refresh-token";
+        const string activeToken = "active-cleanup-refresh-token";
+        const string otherProviderToken = "other-provider-token";
+        var expiredHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(expiredToken)));
+        var activeHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(activeToken)));
+        var otherHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(otherProviderToken)));
+
+        using var scope = Factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await users.FindByEmailAsync(email);
+        Assert.NotNull(user);
+        var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        dbContext.UserTokens.AddRange(
+            new IdentityUserToken<string>
+            {
+                UserId = user.Id,
+                LoginProvider = "SANAD.RefreshToken",
+                Name = expiredHash,
+                Value = DateTime.UtcNow.AddMinutes(-1).ToString("O", CultureInfo.InvariantCulture)
+            },
+            new IdentityUserToken<string>
+            {
+                UserId = user.Id,
+                LoginProvider = "SANAD.RefreshToken",
+                Name = activeHash,
+                Value = DateTime.UtcNow.AddDays(1).ToString("O", CultureInfo.InvariantCulture)
+            },
+            new IdentityUserToken<string>
+            {
+                UserId = user.Id,
+                LoginProvider = "ExternalProvider",
+                Name = otherHash,
+                Value = DateTime.UtcNow.AddMinutes(-1).ToString("O", CultureInfo.InvariantCulture)
+            });
+        await dbContext.SaveChangesAsync();
+
+        var deletedCount = await scope.ServiceProvider
+            .GetRequiredService<IRefreshTokenStore>()
+            .DeleteExpiredAsync();
+
+        Assert.Equal(1, deletedCount);
+        Assert.Null(await dbContext.UserTokens.SingleOrDefaultAsync(token => token.Name == expiredHash));
+        Assert.NotNull(await dbContext.UserTokens.SingleOrDefaultAsync(token => token.Name == activeHash));
+        Assert.NotNull(await dbContext.UserTokens.SingleOrDefaultAsync(token => token.Name == otherHash));
+        Assert.Equal(
+            0,
+            await scope.ServiceProvider
+                .GetRequiredService<IRefreshTokenStore>()
+                .DeleteExpiredAsync());
+    }
+
+    [Fact]
     public async Task SuperAdminProvisioning_IsIdempotentAndDoesNotResetPassword()
     {
         using var scope = Factory.Services.CreateScope();
@@ -327,6 +382,39 @@ public sealed class AuthEndpointTests(SanadWebApplicationFactory factory)
                     .CreateLogger("SANAD.Infrastructure.Identity.IdentitySeeder")));
 
         Assert.Contains("incompatible roles", exception.Message.ToLowerInvariant());
+    }
+
+    [Fact]
+    public async Task SuperAdminProvisioning_RejectsExistingRolelessAccountWithoutChangingCredentials()
+    {
+        var email = $"roleless-{Guid.NewGuid():N}@example.test";
+        using var scope = Factory.Services.CreateScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true
+        };
+        var created = await users.CreateAsync(user, "Existing@12345");
+        Assert.True(created.Succeeded, string.Join("; ", created.Errors.Select(error => error.Code)));
+
+        var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>()
+            .CreateLogger("SANAD.Infrastructure.Identity.IdentitySeeder");
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            IdentitySeeder.SeedAsync(
+                scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>(),
+                users,
+                new SuperAdminSeedOptions(email, "Configured@12345"),
+                manager: null,
+                logger: logger));
+
+        Assert.Contains("manually verify", exception.Message, StringComparison.OrdinalIgnoreCase);
+        var unchangedUser = await users.FindByEmailAsync(email);
+        Assert.NotNull(unchangedUser);
+        Assert.True(await users.CheckPasswordAsync(unchangedUser, "Existing@12345"));
+        Assert.False(await users.CheckPasswordAsync(unchangedUser, "Configured@12345"));
+        Assert.Empty(await users.GetRolesAsync(unchangedUser));
     }
 
     [Fact]

@@ -9,4 +9,6 @@ public interface IRefreshTokenStore
         CancellationToken cancellationToken = default);
 
     Task RevokeAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+    Task<int> DeleteExpiredAsync(CancellationToken cancellationToken = default);
 }

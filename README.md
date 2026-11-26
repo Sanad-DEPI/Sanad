@@ -27,7 +27,9 @@ expand permissions; unresolved access remains denied until approved.
 - ASP.NET Core Identity with eight recognized roles, SQL Server/EF Core, 15-minute JWT bearer tokens, refresh-token rotation, lockout, and rate-limited authentication endpoints.
 - `POST /api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/logout`, protected `GET /api/me`, and role-protected authorization test endpoints.
 - Consistent `ApiResponse<T>` envelope, global model-validation mapping, exception middleware, CORS, Swagger with JWT support, health check, and structured logging.
-- EF Core migration `InitialIdentity` for Identity tables and role seed data.
+- EF Core migration `InitialIdentity` creates the ASP.NET Core Identity tables.
+  At application startup, `IdentitySeeder` creates the eight role records and
+  provisions the configured initial accounts.
 - xUnit unit and integration tests for health, login, validation, authorization, and the reference `/api/me` feature.
 
 ### Frontend
@@ -178,17 +180,26 @@ dotnet user-secrets set "Seed:SuperAdminEmail" "<initial-admin-email>" --project
 dotnet user-secrets set "Seed:SuperAdminPassword" "<unique-password>" --project backend/src/SANAD.API
 ```
 
-All eight recognized roles are seeded on startup. A SuperAdmin account is
-required and is created only when the configured email does not already exist;
-seeding never resets an existing password. The optional Manager seed is
-Development-only. Public registration accepts only Donor or Beneficiary; Donor
-sign-in stays blocked until email verification delivery is implemented.
+The database migration and application seeding are separate operations:
+`InitialIdentity` creates the Identity schema, while `IdentitySeeder` runs at
+API startup to ensure all eight roles and provision the configured SuperAdmin.
+Seeding never resets an existing password. If the configured account already
+exists without roles, startup fails and requires manual verification before
+role assignment. The optional Manager seed is Development-only. Public
+registration accepts only Donor or Beneficiary; Donor sign-in stays blocked
+until email verification delivery is implemented. Expired refresh-token records
+are cleaned at startup and once daily afterward.
 
-Apply the Identity migration before first run:
+Apply the Identity migration before starting the API for the first time. This
+command creates the database tables; it does not create role or user records:
 
 ```bash
 dotnet ef database update --project backend/src/SANAD.Infrastructure --startup-project backend/src/SANAD.API
 ```
+
+After migration, start the API with the required SuperAdmin credentials
+configured. Application startup then runs `IdentitySeeder` to create the role
+records and provision the initial account.
 
 ### Frontend
 

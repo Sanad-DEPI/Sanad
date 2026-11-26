@@ -94,6 +94,32 @@ public sealed class IdentityRefreshTokenStore(
         await SaveConsumptionAsync(cancellationToken);
     }
 
+    public async Task<int> DeleteExpiredAsync(CancellationToken cancellationToken = default)
+    {
+        var refreshTokens = await dbContext.UserTokens
+            .Where(token => token.LoginProvider == LoginProvider)
+            .ToListAsync(cancellationToken);
+        var nowUtc = DateTime.UtcNow;
+        var expiredTokens = refreshTokens
+            .Where(token =>
+                !DateTime.TryParseExact(
+                    token.Value,
+                    ExpiryFormat,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.RoundtripKind,
+                    out var expiresAtUtc) ||
+                expiresAtUtc <= nowUtc)
+            .ToArray();
+
+        if (expiredTokens.Length == 0)
+        {
+            return 0;
+        }
+
+        dbContext.UserTokens.RemoveRange(expiredTokens);
+        return await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<bool> SaveConsumptionAsync(CancellationToken cancellationToken)
     {
         try
