@@ -31,6 +31,11 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) is a charity managemen
 
 - Security and privacy for sensitive beneficiary data.
 - Server-side authorization and validation; frontend checks are not security.
+- Approved account types, role responsibilities, and data-access boundaries
+  are defined in Sections 4–5 of
+  [`requirements/requirements.md`](requirements/requirements.md). Treat that
+  document as authoritative; do not infer role permissions from the current
+  authentication foundation or ERD.
 - Separation of duties and financial consistency for allocation and payout operations.
 - Auditability and maintainability.
 - Implement only agreed requirements; keep solutions simple.
@@ -38,7 +43,9 @@ SANAD (SACMP — Smart Aid & Charity Management Platform) is a charity managemen
 ## Implemented foundation
 
 - Backend solution with Domain, Application, Infrastructure, API, UnitTests, and IntegrationTests projects.
-- Identity + JWT authentication, six seeded roles, optional development-only initial Manager account.
+- Identity + JWT authentication, six legacy seeded roles, and an optional
+  development-only Manager account. These are current implementation facts,
+  not the approved target account/role plan.
 - `/health`, `/api/auth/login`, `/api/me`, `/api/test/authenticated`, and Manager-only `/api/test/manager`.
 - EF Core SQL Server configuration and initial Identity migration.
 - Consistent API response envelope, validation mapping, exception handling, CORS, Swagger, and health checks.
@@ -55,7 +62,10 @@ Family/case management, document verification workflows, needs assessment and sc
 
 ## Status
 
-The base foundation is implemented and verified locally. Configuration, run instructions, exact verification commands, and the token-storage decision are in `README.md`; the implemented architecture is described in `docs/architecture/foundation.md`.
+The base foundation is implemented and verified locally. Its current six-role
+seed and development Manager bootstrap predate the approved account/role plan;
+they are implementation status only and are not the target registration or
+permission model. Configuration, run instructions, exact verification commands, and the token-storage decision are in `README.md`; the implemented architecture is described in `docs/architecture/foundation.md`.
 
 The ERD confirms the five-module ownership allocation. Its approved Identity
 key decision, integrity constraints, and remaining design questions are

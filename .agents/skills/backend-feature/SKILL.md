@@ -13,7 +13,7 @@ Implement a requested backend change in the established Clean Architecture style
 - The change touches server-side validation, authorization, or financial/beneficiary data.
 
 ## Inspect first
-Read root `AGENTS.md`, `backend/AGENTS.md`, `.agents/rules/testing.md`, and `docs/integration/module-contracts.md`. Open `backend/src/SANAD.API/Controllers/CurrentUserController.cs` and follow its files across Domain → Application → Infrastructure → API. Check the owning module and inspect existing entities before touching files or shared contracts. Do not assume a pattern exists just because it is common.
+Read root `AGENTS.md`, `backend/AGENTS.md`, `.agents/rules/testing.md`, `docs/integration/module-contracts.md`, and (for registration, authorization, case, document, scoring, donation, allocation, payout, reporting, or notification work) Sections 4–5 of `docs/requirements/requirements.md`. Open `backend/src/SANAD.API/Controllers/CurrentUserController.cs` and follow its files across Domain → Application → Infrastructure → API. Check the owning module and inspect existing entities before touching files or shared contracts. Do not assume a pattern exists just because it is common.
 
 ## Mandatory implementation order
 1. **Analyze** — requirements, business rules, module ownership, dependencies, and existing implementation. Ask about gaps instead of inventing them.
@@ -29,8 +29,12 @@ Only create classes in the layers the feature actually requires.
 ## Hard rules
 - Domain depends on nothing. Application depends only on Domain. Infrastructure depends on Application and Domain. API may depend on Application and Infrastructure for composition.
 - No business rules in controllers or Infrastructure. No Domain/Application reference to API or Infrastructure.
-- Use existing conventions for naming, DTOs, validation (DataAnnotations), `ApiResponse<T>` errors, DI, EF Core mappings/migrations, auth (`AppRoles` constants), and logging.
+- Use existing conventions for naming, DTOs, validation (DataAnnotations), `ApiResponse<T>` errors, DI, EF Core mappings/migrations, auth (`AppRoles` constants for current foundation roles and approved requirements for target roles), and logging.
 - Do not modify another module or shared contract without checking ownership and explaining the contract change first.
+- Before implementing authorization, map each action and returned data field to
+  the approved role permissions in `docs/requirements/requirements.md`. Apply
+  least privilege and deny unresolved access until approved; never infer or
+  expand permissions from an existing role name or UI.
 - Create required migrations on the feature branch and apply them to the
   developer's local SQL Server. Never blindly overwrite, delete, or modify
   another developer's migrations or model snapshot. Merge the latest

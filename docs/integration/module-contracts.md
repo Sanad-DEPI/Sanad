@@ -40,10 +40,10 @@ relationship as required.
 | Entity | Primary key | Foreign keys | Other attributes and constraints |
 | --- | --- | --- | --- |
 | `USER` | `Id` (`string`, Identity) | — | `Email` (`string`, unique), `PhoneNumber`, `FullName`, `IsActive`, `CreatedAt` |
-| `ROLE` | `Id` (`string`, Identity) | — | `Name` (`string`, unique; six listed role names) |
+| `ROLE` | `Id` (`string`, Identity) | — | `Name` (`string`, unique; approved roles: `SuperAdmin`, `Manager`, `PayoutAuditor`, `Treasurer`, `DocumentReviewer`, `FieldOfficer`, `Donor`, `Beneficiary`) |
 | `USERROLE` | `UserId` + `RoleId` (`string`) | `UserId` → `USER`, `RoleId` → `ROLE` | Composite PK |
 | `DONOR` | `Id` (`guid`) | `UserId` → `USER` (`string`, unique), `DeletedById` → `USER` (`string`, nullable) | `PreferredChannel`, `OptOutNonEssential`, `IsDeleted`, `DeletedAt` (nullable) |
-| `FAMILY` | `Id` (`guid`) | `DeletedById` → `USER` (`string`, nullable) | `HeadFullNameEnc`, `AddressEnc`, `PhoneEnc`, `Governorate`, `CreatedAt`, `IsDeleted`, `DeletedAt` (nullable) |
+| `FAMILY` | `Id` (`guid`) | `PrimaryBeneficiaryUserId` → `USER` (`string`, required, unique); `DeletedById` → `USER` (`string`, nullable) | `HeadFullNameEnc`, `AddressEnc`, `PhoneEnc`, `Governorate`, `CreatedAt`, `IsDeleted`, `DeletedAt` (nullable); exactly one primary Beneficiary account |
 | `FAMILYMEMBER` | `Id` (`guid`) | `FamilyId` → `FAMILY`, `DeletedById` → `USER` (`string`, nullable) | `FullNameEnc`, `NationalIdEnc`, `NationalIdHash` (unique), `BirthDate`, `Gender`, `Relation`, `IsProvider`, `IsDeleted`, `DeletedAt` (nullable) |
 | `CASE` | `Id` (`guid`) | `FamilyId` → `FAMILY`, `CreatedByOfficerId` → `USER` (`string`), `DeletedById` → `USER` (`string`, nullable) | `Status` (four ERD values), `SubmittedAt`, `VerifiedAt`, `PausedDays`, `IsDeleted`, `DeletedAt` (nullable) |
 | `CASESURVEY` | `CaseId` (`guid`) | `CaseId` → `CASE` | `MonthlyIncome`, `MonthlyRent`, `FamilySize`, `HousingType` (three ERD values), `ProviderStatus`, `ChildrenUnder6`, `ChronicIllnessCount`, `DisabilitySeverity`, `MonthlyMedicalSpend`, `SchoolAgeChildren`, `ChildrenInSchool`, `HomeCondition` |
@@ -52,8 +52,8 @@ relationship as required.
 | `SCORINGRULESET` | `Id` (`guid`) | `CreatedById` → `USER` (`string`) | `Version` (unique), `WeightFinancial`, `WeightSocial`, `WeightHealth`, `WeightEducation`, `PovertyThreshold`, `WaitLambda`, `WaitMaxDays`, `PointTablesJson`, `IsActive`, `CreatedAt`; deactivate instead of delete |
 | `SCORERESULT` | `Id` (`guid`) | `CaseId` → `CASE`, `RuleSetId` → `SCORINGRULESET` | `FinancialScore`, `SocialScore`, `HealthScore`, `EducationScore`, `BaseScore`, `WaitDays`, `WaitFactor`, `PriorityScore`, `PriorityBand`, `CalculatedAt` |
 | `SPECIFICNEED` | `Id` (`guid`) | `CaseId` → `CASE`, `ValuedById` → `USER` (`string`), `DeletedById` → `USER` (`string`, nullable) | `Description`, `Category`, `EstimatedPrice`, `FundedAmount`, `Status` (four ERD values), `CreatedAt`, `IsDeleted`, `DeletedAt` (nullable) |
-| `DONATIONCATEGORY` | `Id` (`guid`) | — | `Name` (`string`, unique; three ERD values), `IsActive` |
-| `DONATION` | `Id` (`guid`) | `DonorId` → `DONOR`, `CategoryId` → `DONATIONCATEGORY` | `Amount`, `FeeAmount`, `Currency`, `Status` (four ERD values), `CreatedAt`, `ConfirmedAt`; financial record, never physically deleted |
+| `DONATIONCATEGORY` | `Id` (`guid`) | — | `Name` (`string`, unique; `Education` or `Health`), `IsActive`; general fund is not a category |
+| `DONATION` | `Id` (`guid`) | `DonorId` → `DONOR` (nullable), `CategoryId` → `DONATIONCATEGORY` (nullable) | `GuestReceiptEmail` (nullable; required when `DonorId` is null), `Amount`, `FeeAmount`, `Currency`, `Status` (four ERD values), `CreatedAt`, `ConfirmedAt`; financial record, never physically deleted |
 | `PAYMENTTRANSACTION` | `Id` (`guid`) | `DonationId` → `DONATION` | `Gateway`, `GatewayRef` (unique), `Status`, `PayloadHash`, `WebhookReceivedAt`; financial record, never physically deleted |
 | `DONATIONALLOCATION` | `Id` (`guid`) | `DonationId` → `DONATION`, `CaseId` → `CASE` (required), `NeedId` → `SPECIFICNEED` (nullable) | `Amount`, `AllocatedAt`; financial record, never physically deleted |
 | `LEDGERENTRY` | `Id` (`guid`) | `DonationId` → `DONATION` (nullable), `AllocationId` → `DONATIONALLOCATION` (nullable), `PayoutId` → `PAYOUT` (nullable) | `EntryType` (five ERD values), `Amount`, `CreatedAt`; financial record, never physically deleted |
@@ -63,9 +63,27 @@ relationship as required.
 | `REPORT` | `Id` (`guid`) | `GeneratedById` → `USER` (`string`), `DeletedById` → `USER` (`string`, nullable) | `ReportType`, `PeriodStart`, `PeriodEnd`, `FilePath`, `FileHash`, `CreatedAt`, `IsDeleted`, `DeletedAt` (nullable) |
 | `AUDITLOG` | `Id` (`guid`) | `UserId` → `USER` (`string`) | `Action`, `EntityName`, `EntityId`, `OldValue`, `NewValue`, `At`; append-only immutable record |
 
-The ERD's six role names are `Manager`, `PayoutAuditor`, `Treasurer`,
-`DocumentReviewer`, `FieldOfficer`, and `Donor`, matching
-[`AppRoles.cs`](../../backend/src/SANAD.Domain/Constants/AppRoles.cs).
+The current `AppRoles.cs` seed still contains the legacy foundation roles
+`Manager`, `PayoutAuditor`, `Treasurer`, `DocumentReviewer`, `FieldOfficer`,
+and `Donor`; it has not been updated by this documentation change. The approved
+target model has six staff roles (`SuperAdmin`, `Manager`, `DocumentReviewer`,
+`FieldOfficer`, `PayoutAuditor`, and `Treasurer`) and two mutually exclusive
+public account roles (`Donor` and `Beneficiary`); Guest donor has no account or
+role. See Sections 4–5 of
+[`requirements.md`](../requirements/requirements.md) for registration and
+permissions. This documentation update does not alter the approved ERD or
+current application implementation.
+
+The approved ERD now links `FAMILY.PrimaryBeneficiaryUserId` directly to the
+existing ASP.NET Identity `USER.Id` using a required, unique string foreign
+key. Each Beneficiary account owns exactly one family, and each family has
+exactly one primary Beneficiary account. The linked Identity user must have the
+Beneficiary role. This does not add a duplicate user entity or change the
+responsibilities or ownership of `FAMILY` and `FAMILYMEMBER`.
+The unique foreign key ensures each Identity user can be linked to at most one
+family; the Beneficiary account-creation workflow must atomically create/link
+exactly one family for every Beneficiary account, since the FK alone cannot
+enforce that reverse participation constraint.
 
 ## Identity ownership
 
@@ -73,6 +91,18 @@ ASP.NET Core Identity owns authentication users, roles, and user-role
 relationships. The current implementation uses `ApplicationUser : IdentityUser`,
 `IdentityRole`, and one `AppDbContext`; the existing migration creates the
 standard tables.
+
+The current Identity foundation seeds six legacy roles and optionally creates
+a development Manager account. This is implementation status, not the approved
+target account/role behavior. Future registration and authorization work must
+follow the requirements document. In particular, do not treat the current
+Manager seed or the ERD's role-name annotation as permission to expose
+beneficiary or financial data, and do not modify the ERD as part of this
+documentation decision.
+
+The approved ERD supports the Beneficiary-to-family and guest-donation
+workflows. These are design decisions only; application code, migrations, and
+the database have not been updated by this documentation change.
 
 | ERD concept | Existing Identity table |
 | --- | --- |
@@ -124,7 +154,12 @@ The ERD verifies these cross-module references:
 - Module 3 owns `DONATION`; Module 4 references it through
   `DONATIONALLOCATION.DonationId` and `LEDGERENTRY.DonationId`.
 - Module 3 owns `DONOR`; `DONATION` depends on it and the Identity foundation
-  owns the linked `USER`.
+  owns the linked `USER` when `DONATION.DonorId` is non-null. Guest donations
+  have no `DONOR` relationship.
+- `FAMILY.PrimaryBeneficiaryUserId` references the existing Identity `USER`
+  with a required, unique string foreign key. It is restricted to users with
+  the Beneficiary role; each family has exactly one primary Beneficiary, and
+  each Beneficiary account owns exactly one family.
 - Module 3's `DONATION` is referenced by Module 5's nullable
   `NOTIFICATIONOUTBOX.DonationId`.
 - Identity `USER` is referenced by all modules through creator, reviewer,
@@ -160,6 +195,10 @@ parent-side count is followed by the child-side count:
 
 - `USER` → `USERROLE`: zero-or-many; `ROLE` → `USERROLE`: zero-or-many.
 - `USER` → `DONOR`: zero-or-one; each `DONOR` has exactly one `USER`.
+- `USER` → `FAMILY`: zero-or-one family for each Identity user; each `FAMILY`
+  has exactly one primary Beneficiary user. The relationship applies only to
+  `USER` accounts with the Beneficiary role, and the unique FK prevents one
+  Beneficiary account from owning multiple families.
 - `USER` → `AUDITLOG`, `NOTIFICATIONOUTBOX`, `REPORT`, `CASE`,
   `CASESTATUSHISTORY`, `DOCUMENT`, `SCORINGRULESET`, `SPECIFICNEED`, and
   `PAYOUTAPPROVAL`: zero-or-many; each child has exactly one referenced user.
@@ -171,8 +210,13 @@ parent-side count is followed by the child-side count:
   case.
 - `SCORINGRULESET` → `SCORERESULT`: zero-or-many; each result has exactly one
   rule set.
-- `DONOR` → `DONATION` and `DONATIONCATEGORY` → `DONATION`: zero-or-many;
-  each donation has exactly one donor and category.
+- `DONOR` → `DONATION`: zero-or-many donations per donor; each donation has
+  zero-or-one donor (`DonorId` nullable). A non-null `DonorId` references an
+  authenticated Donor; null means guest donation.
+- `DONATIONCATEGORY` → `DONATION`: zero-or-many donations per category; each
+  donation has zero-or-one category (`CategoryId` nullable). Null means the
+  general fund; a non-null category is an approved category (`Education` or
+  `Health`). Guest donations must have null `CategoryId`.
 - `DONATION` → `PAYMENTTRANSACTION` and `DONATIONALLOCATION`: zero-or-many;
   each child has exactly one donation. `DONATIONALLOCATION` → `CASE` is
   required, while its `SPECIFICNEED` reference is zero-or-one per allocation.
@@ -217,6 +261,22 @@ Application validation must also enforce the `EntryType` mapping:
 | `Payout` | `PayoutId` |
 
 No amount signs, accounting behavior, or transaction rules are inferred here.
+
+### Donation account and fund constraints
+
+`DONATION.DonorId` is nullable: when populated, it references an authenticated
+Donor account; when null, the donation is a guest donation. A guest donation
+must carry a `GuestReceiptEmail`, which is null for authenticated donations.
+`CategoryId` is nullable and null denotes the general fund; guest donations
+must have null `CategoryId`. A non-null category is restricted to the approved
+`Education` and `Health` categories. The general fund is not a
+`DONATIONCATEGORY`. Enforce the conditional donor/email/category combinations
+as a single invariant: guest (`DonorId` null) requires receipt email and null
+category; authenticated (`DonorId` non-null) requires null guest receipt email
+and may select a category or the general fund. No placeholder Donor account is
+created for guests. Donations remain financial records and retain payment
+transactions, confirmations, receipts, and ledger tracking regardless of donor
+type.
 
 ### Notification integrity
 

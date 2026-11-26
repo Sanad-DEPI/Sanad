@@ -11,6 +11,10 @@ A realistic baseline for a ~10-day delivery. Test depth should match risk.
 - Important business rules: needs scoring, eligibility, allocation, and payout state transitions.
 - Validation at boundaries: required fields, invalid formats, rejected states.
 - Authorization: users in the wrong role cannot read or modify family, document, or financial data.
+- Test each role against the approved permission matrix in
+  `docs/requirements/requirements.md`; include cross-family, identity-data,
+  self-approval, and unresolved-access denial cases where relevant. Do not
+  encode permissions inferred from role names or frontend guards.
 - Financial operations: amounts, rounding, retry idempotency, and consistency after partial failures.
 - ERD integrity: same-case allocation references, exactly-one ledger source and `EntryType` mapping, notification type/reference validation, append-only audit behavior, and soft-deletion visibility/authorization.
 - Edge cases: empty results, concurrent updates, partial failures, and missing related records.

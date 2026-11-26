@@ -5,6 +5,14 @@ Developer names are intentionally placeholders. Ownership is logical ownership
 inside one backend application and one shared SQL Server database; it is not a
 service or database split.
 
+The approved account types, staff roles, responsibilities, privacy boundaries,
+and workflows are defined only in Sections 4–5 of
+[`../requirements/requirements.md`](../requirements/requirements.md). Module
+ownership does not grant data access or authorization. Every developer must
+check each action and data field against that source before implementation;
+never invent or expand permissions, and keep unresolved access denied until
+approved.
+
 ## Assignments
 
 | Developer | Module | Owned entities | Assignment |

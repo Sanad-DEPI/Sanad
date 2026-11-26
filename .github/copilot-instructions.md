@@ -4,6 +4,15 @@ Follow the nearest `AGENTS.md`: root first, then `backend/AGENTS.md` or `fronten
 
 Before business-module work, read `docs/integration/module-contracts.md`; inspect existing entities and never duplicate shared entities. Work on `feature/*` branches, merge the latest `develop` before opening a PR, and target PRs at `develop`. Developers may create feature-branch migrations, but must reconcile snapshots and migration conflicts with the project lead rather than overwriting or deleting another developer's work.
 
+For any work affecting accounts, registration, authorization, beneficiary data,
+or financial workflows, read Sections 4–5 of
+`docs/requirements/requirements.md`. That is the authoritative role and
+permission source. Verify every action and data field against approved role
+boundaries before implementing it; do not infer or expand permissions. Keep
+undecided access marked `UNRESOLVED — REQUIRES DECISION` and deny it until
+approved. In particular, preserve the separation between eligibility,
+priority, allocation, and payout.
+
 SANAD is an Arabic platform. Frontend work must support Arabic text and RTL
 layout and preserve Unicode API data. Do not invent English or additional-
 language support or translations.
